@@ -885,30 +885,67 @@ function calculatePayslip(params) {
     steps.push({ section: 'PAYE calculation', label: 'Less tax credits', val: '−' + fmt(periodCredit) });
     steps.push({ section: 'PAYE calculation', label: 'PAYE deducted', val: fmt(payeDeducted) });
 
-    // ── 3. USC ──
+    // ── 3. USC — cumulative method with pro-rated band thresholds ──
+    // Each band threshold is pro-rated to the number of periods elapsed.
+    // Total USC due on cumulative YTD gross is calculated, then prior
+    // periods' USC is subtracted to get this period's deduction.
     uscDeducted = 0;
     if (uscRate !== 'exempt') {
       const bands = uscRate === 'reduced' ? USC_BANDS_REDUCED : USC_BANDS_STANDARD;
-      let annualEquivalent = taxablePay * periods;
-      let prev = 0;
-      steps.push({ section: 'USC calculation', label: 'Annual equivalent pay', val: fmt(annualEquivalent) });
 
+      // For Week 1 basis USC: treat each period independently (same as PAYE Week 1)
+      // For cumulative: use period-number to pro-rate thresholds
+      const periodsToDate = basis === 'week1' ? 1 : periodNumber;
+      const priorPeriods  = basis === 'week1' ? 0 : periodNumber - 1;
+
+      // YTD gross — for single payslip we assume consistent pay, so gross * periodsToDate
+      // In production this would come from stored YTD figures
+      const ytdGross      = round2(grossPay * periodsToDate);
+      const priorYtdGross = round2(grossPay * priorPeriods);
+
+      // Calculate total USC due on a given cumulative gross using pro-rated band limits
+      function calcCumulativeUsc(cumGross, numPeriods) {
+        if (cumGross <= 0 || numPeriods <= 0) return 0;
+        let total = 0;
+        let prev = 0;
+        bands.forEach(band => {
+          const proRatedLimit = band.limit === Infinity ? Infinity : round2((band.limit / periods) * numPeriods);
+          const top   = Math.min(cumGross, proRatedLimit);
+          const slice = Math.max(0, top - prev);
+          total += slice * band.rate;
+          prev = proRatedLimit;
+          if (prev >= cumGross) return;
+        });
+        return round2(total);
+      }
+
+      const uscToDate   = calcCumulativeUsc(ytdGross, periodsToDate);
+      const uscPrior    = calcCumulativeUsc(priorYtdGross, priorPeriods);
+      uscDeducted       = round2(Math.max(0, uscToDate - uscPrior));
+
+      // Build steps for workings display
+      steps.push({ section: 'USC calculation', label: basis === 'week1' ? 'Basis: Week 1 (each period independent)' : `Cumulative to period ${periodNumber}`, val: '' });
+      steps.push({ section: 'USC calculation', label: 'YTD gross', val: fmt(ytdGross) });
+      let prev2 = 0;
       bands.forEach((band, i) => {
-        const top = Math.min(annualEquivalent, band.limit);
-        const slice = Math.max(0, top - prev);
-        const usc = round2((slice / periods) * band.rate);
+        const proRatedLimit = band.limit === Infinity ? Infinity : round2((band.limit / periods) * periodsToDate);
+        const top   = Math.min(ytdGross, proRatedLimit);
+        const slice = Math.max(0, top - prev2);
         if (slice > 0) {
-          uscDeducted += usc;
-          steps.push({ section: 'USC calculation', label: `Band ${i+1}: ${fmt(slice)} @ ${(band.rate*100).toFixed(1)}%`, val: fmt(usc) });
+          const limitLabel = band.limit === Infinity ? 'remainder' : fmt(proRatedLimit);
+          steps.push({ section: 'USC calculation', label: `Band ${i+1} (pro-rated to ${periodsToDate} period${periodsToDate>1?'s':''}): ${fmt(slice)} @ ${(band.rate*100).toFixed(1)}%`, val: fmt(round2(slice * band.rate)) });
         }
-        prev = band.limit;
-        if (prev >= annualEquivalent) return;
+        prev2 = proRatedLimit;
+        if (prev2 >= ytdGross) return;
       });
-      uscDeducted = round2(uscDeducted);
+      steps.push({ section: 'USC calculation', label: 'Total USC due to date', val: fmt(uscToDate) });
+      if (priorPeriods > 0) {
+        steps.push({ section: 'USC calculation', label: `Less USC deducted in periods 1–${priorPeriods}`, val: '−' + fmt(uscPrior) });
+      }
     } else {
       steps.push({ section: 'USC calculation', label: 'USC exempt', val: '€0.00' });
     }
-    steps.push({ section: 'USC calculation', label: 'USC deducted', val: fmt(uscDeducted) });
+    steps.push({ section: 'USC calculation', label: 'USC deducted this period', val: fmt(uscDeducted) });
   }
 
   // ── 4. PRSI ──
