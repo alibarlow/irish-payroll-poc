@@ -613,6 +613,7 @@
   <button class="nav-tab" onclick="showPage('termination')">Termination</button>
   <button class="nav-tab" onclick="showPage('holiday')">Holiday pay</button>
   <button class="nav-tab" onclick="showPage('tracker')">Leave tracker</button>
+  <button class="nav-tab" onclick="showPage('family')">Family leave</button>
 </nav>
 
 <!-- ═══ SINGLE PAYSLIP PAGE ═══ -->
@@ -1198,6 +1199,115 @@
   <!-- Results -->
   <div id="tracker-results" style="margin-top:24px"></div>
 
+</div>
+
+<!-- ═══ FAMILY LEAVE PAGE ═══ -->
+<div id="page-family" class="page">
+
+  <!-- Header row -->
+  <div style="margin-bottom:20px">
+    <div style="font-size:18px;font-weight:500;color:var(--ink)">Family leave — entitlements &amp; payroll scenarios</div>
+    <div style="font-size:12px;color:var(--ink-soft);margin-top:3px">2026 · State benefit rates · Employer top-up calculator</div>
+  </div>
+
+  <!-- Entitlement reference cards -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:28px" id="fl-ref-cards"></div>
+
+  <!-- Top-up calculator -->
+  <div style="font-size:15px;font-weight:500;margin-bottom:14px;color:var(--ink)">Payroll scenario calculator</div>
+  <div class="notice" style="margin-bottom:16px">
+    The State (DSP) pays the flat-rate benefit. The employer pays nothing unless they choose to top up. This calculator shows how the payroll entries work for three common top-up arrangements.
+  </div>
+
+  <div class="two-col">
+    <div>
+      <div class="card">
+        <div class="card-title">Employee &amp; leave details</div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>First name</label>
+            <input type="text" id="fl-first" value="Anne" oninput="calcFamilyLeave()">
+          </div>
+          <div class="form-group">
+            <label>Surname</label>
+            <input type="text" id="fl-last" value="Ryan" oninput="calcFamilyLeave()">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Leave type</label>
+          <select id="fl-type" onchange="calcFamilyLeave()">
+            <option value="maternity">Maternity leave</option>
+            <option value="paternity">Paternity leave</option>
+            <option value="parents">Parent's leave</option>
+            <option value="adoptive">Adoptive leave</option>
+            <option value="parental">Parental leave (unpaid)</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Normal weekly gross pay (€)</label>
+          <input type="number" id="fl-weekly" value="700" step="1" oninput="calcFamilyLeave()">
+        </div>
+
+        <div class="form-group">
+          <label>Pay frequency</label>
+          <select id="fl-freq" onchange="calcFamilyLeave()">
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+        </div>
+
+        <div class="section-divider">Employer top-up arrangement</div>
+
+        <div class="form-group">
+          <label>Top-up type</label>
+          <select id="fl-topup" onchange="toggleTopup()">
+            <option value="none">No top-up — State benefit only</option>
+            <option value="full">Full salary maintained</option>
+            <option value="partial">Partial top-up</option>
+            <option value="tiered">Tiered (full for first period, then benefit only)</option>
+          </select>
+        </div>
+
+        <div id="fl-partial-fields" style="display:none">
+          <div class="form-group">
+            <label>Employer pays (% of normal salary)</label>
+            <input type="number" id="fl-partial-pct" value="50" min="0" max="100" step="5" oninput="calcFamilyLeave()">
+            <div style="font-size:11px;color:var(--ink-soft);margin-top:3px">Employee receives this % of normal salary — the DSP benefit reduces the employer's cost.</div>
+          </div>
+        </div>
+
+        <div id="fl-tiered-fields" style="display:none">
+          <div class="form-group">
+            <label>Full salary for first (weeks)</label>
+            <input type="number" id="fl-tiered-weeks" value="13" min="1" step="1" oninput="calcFamilyLeave()">
+          </div>
+        </div>
+
+        <div class="section-divider">Tax details</div>
+        <div class="form-group">
+          <label>Annual tax credits (€)</label>
+          <input type="number" id="fl-credits" value="4000" step="1" oninput="calcFamilyLeave()">
+        </div>
+        <div class="form-group">
+          <label>Standard rate cut-off — annual (€)</label>
+          <input type="number" id="fl-cutoff" value="42000" step="100" oninput="calcFamilyLeave()">
+        </div>
+        <div style="font-size:11px;color:var(--ink-soft);padding:6px 8px;background:var(--orange-light);border-left:3px solid var(--orange);border-radius:0 4px 4px 0;line-height:1.5;margin-top:4px">
+          Revenue will issue a revised RPN reducing credits and cut-off to collect tax on the DSP benefit. Enter the revised figures here to see the correct payroll calculation.
+        </div>
+      </div>
+    </div>
+
+    <div id="family-output">
+      <div class="empty-state">
+        <div class="empty-icon">◎</div>
+        <p>Family leave payroll breakdown will appear here.</p>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Modal for pay run detail -->
@@ -2782,6 +2892,343 @@ function removeTrackerEmployee(i) {
   renderTracker();
 }
 
+// ══ FAMILY LEAVE ENGINE ══
+
+const BENEFIT_RATE_2026 = 299; // € per week, all leave types
+
+const FAMILY_LEAVE_TYPES = {
+  maternity: {
+    label: 'Maternity leave',
+    paidWeeks: 26,
+    unpaidWeeks: 16,
+    totalWeeks: 42,
+    benefit: BENEFIT_RATE_2026,
+    paidBy: 'DSP (Dept of Social Protection)',
+    prsiQual: 'Class A, E, H, S — 39 weeks PRSI in 12 months before leave, or qualifying equivalent',
+    taxOnBenefit: 'PAYE only — no USC or PRSI on benefit',
+    noticeReq: '4 weeks written notice to employer (employee). Form MB1 to DSP at least 6 weeks before leave.',
+    annualLeaveAccrues: true,
+    notes: 'At least 2 weeks before birth and 4 weeks after are compulsory. 16 additional unpaid weeks receive credited PRSI contributions.',
+    color: '#7C3DAE', bg: '#F5EEFE',
+  },
+  paternity: {
+    label: 'Paternity leave',
+    paidWeeks: 2,
+    unpaidWeeks: 0,
+    totalWeeks: 2,
+    benefit: BENEFIT_RATE_2026,
+    paidBy: 'DSP (Dept of Social Protection)',
+    prsiQual: 'Class A, E, H, S — same conditions as maternity',
+    taxOnBenefit: 'PAYE only — no USC or PRSI on benefit',
+    noticeReq: '4 weeks written notice to employer. Must be taken within 26 weeks of birth or adoption.',
+    annualLeaveAccrues: true,
+    notes: 'Must be taken as 2 consecutive weeks. Cannot be split. One period only regardless of multiple births.',
+    color: '#1A5C7A', bg: '#E6F3F8',
+  },
+  parents: {
+    label: "Parent's leave",
+    paidWeeks: 9,
+    unpaidWeeks: 0,
+    totalWeeks: 9,
+    benefit: BENEFIT_RATE_2026,
+    paidBy: 'DSP (Dept of Social Protection)',
+    prsiQual: 'Class A, E, H, S — same conditions as maternity',
+    taxOnBenefit: 'PAYE only — no USC or PRSI on benefit',
+    noticeReq: '6 weeks written notice to employer.',
+    annualLeaveAccrues: true,
+    notes: "Each parent gets 9 weeks independently — cannot be transferred. Must be taken within the first 2 years of the child's life. If unused by child's 2nd birthday, entitlement is lost.",
+    color: '#1A5C3A', bg: '#E8F5EE',
+  },
+  adoptive: {
+    label: 'Adoptive leave',
+    paidWeeks: 24,
+    unpaidWeeks: 16,
+    totalWeeks: 40,
+    benefit: BENEFIT_RATE_2026,
+    paidBy: 'DSP (Dept of Social Protection)',
+    prsiQual: 'Class A, E, H, S — same conditions as maternity',
+    taxOnBenefit: 'PAYE only — no USC or PRSI on benefit',
+    noticeReq: '4 weeks written notice to employer.',
+    annualLeaveAccrues: true,
+    notes: 'One parent of the adopting couple takes adoptive leave; the other takes paternity leave. Same-sex couples explicitly covered.',
+    color: '#C47A1A', bg: '#FDF4E6',
+  },
+  parental: {
+    label: 'Parental leave',
+    paidWeeks: 0,
+    unpaidWeeks: 26,
+    totalWeeks: 26,
+    benefit: 0,
+    paidBy: 'No payment — unpaid',
+    prsiQual: 'Employee must have 12 months service. No PRSI payment condition.',
+    taxOnBenefit: 'N/A — no benefit payment',
+    noticeReq: '6 weeks written notice to employer.',
+    annualLeaveAccrues: false,
+    notes: "Available until child turns 12 (16 if disabled). No social welfare payment. Can be taken in one block or split — subject to employer agreement. Does not accrue annual leave.",
+    color: '#4A4A4A', bg: '#F5F5F3',
+  },
+};
+
+function renderFamilyRefCards() {
+  const container = document.getElementById('fl-ref-cards');
+  container.innerHTML = Object.entries(FAMILY_LEAVE_TYPES).map(([key, lt]) => `
+    <div style="background:${lt.bg};border:1px solid ${lt.color}33;border-radius:8px;padding:14px;border-top:3px solid ${lt.color}">
+      <div style="font-weight:500;font-size:13px;color:${lt.color};margin-bottom:8px">${lt.label}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px;margin-bottom:8px">
+        <div>
+          <div style="color:var(--ink-soft);font-size:10px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Paid weeks</div>
+          <div style="font-weight:500;color:var(--ink)">${lt.paidWeeks > 0 ? lt.paidWeeks + ' weeks' : 'None'}</div>
+        </div>
+        <div>
+          <div style="color:var(--ink-soft);font-size:10px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Weekly benefit</div>
+          <div style="font-weight:500;color:var(--ink)">${lt.benefit > 0 ? '€' + lt.benefit : 'None'}</div>
+        </div>
+        <div>
+          <div style="color:var(--ink-soft);font-size:10px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Unpaid weeks</div>
+          <div style="font-weight:500;color:var(--ink)">${lt.unpaidWeeks > 0 ? lt.unpaidWeeks + ' weeks' : 'None'}</div>
+        </div>
+        <div>
+          <div style="color:var(--ink-soft);font-size:10px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px">Annual leave accrues</div>
+          <div style="font-weight:500;color:${lt.annualLeaveAccrues ? 'var(--green)' : 'var(--orange)'}">${lt.annualLeaveAccrues ? 'Yes' : 'No'}</div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--ink-soft);line-height:1.5;border-top:1px solid ${lt.color}22;padding-top:7px">${lt.notes}</div>
+    </div>
+  `).join('');
+}
+
+function calcFamilyLeave() {
+  const first     = document.getElementById('fl-first').value || 'Employee';
+  const last      = document.getElementById('fl-last').value || '';
+  const leaveType = document.getElementById('fl-type').value;
+  const weekly    = parseFloat(document.getElementById('fl-weekly').value) || 0;
+  const freq      = document.getElementById('fl-freq').value;
+  const topup     = document.getElementById('fl-topup').value;
+  const credits   = parseFloat(document.getElementById('fl-credits').value) || 0;
+  const cutoff    = parseFloat(document.getElementById('fl-cutoff').value) || 0;
+
+  const lt        = FAMILY_LEAVE_TYPES[leaveType];
+  const periods   = PERIODS[freq];
+  const benefitWeekly = lt.benefit;
+  const benefitPeriod = freq === 'monthly' ? round2(benefitWeekly * 52 / 12) : benefitWeekly;
+  const normalPeriod  = freq === 'monthly' ? round2(weekly * 52 / 12) : weekly;
+
+  // Build scenarios based on top-up type
+  let scenarios = [];
+
+  if (leaveType === 'parental') {
+    // Parental leave — always unpaid, no benefit
+    scenarios.push({
+      label: 'Parental leave — unpaid',
+      employerPays: 0,
+      benefitRoute: 'none',
+      topupAmount: 0,
+      grossForTax: 0,
+      note: 'No payment from employer or DSP. Employee receives nothing during parental leave. PRSI credited contributions may apply.',
+    });
+  } else if (topup === 'none') {
+    // No top-up — benefit goes direct to employee, nothing through payroll
+    scenarios.push({
+      label: 'No employer top-up',
+      employerPays: 0,
+      benefitRoute: 'direct',
+      topupAmount: 0,
+      grossForTax: 0,
+      note: `DSP pays €${benefitWeekly}/week directly to the employee. Nothing goes through the employer payroll. Revenue adjusts the employee's RPN to collect PAYE on the benefit.`,
+    });
+  } else if (topup === 'full') {
+    // Full salary — employer pays normal gross, receives DSP benefit, pays top-up = normal - benefit
+    const topupAmount  = round2(normalPeriod - benefitPeriod);
+    const employerCost = round2(topupAmount);
+    scenarios.push({
+      label: 'Full salary maintained',
+      employerPays: normalPeriod,
+      benefitRoute: 'via employer',
+      topupAmount,
+      grossForTax: normalPeriod,
+      employerCost,
+      note: `Employee directs DSP to pay benefit to employer (€${fmt(benefitPeriod)}/${freq === 'monthly' ? 'month' : 'week'}). Employer tops up to normal gross. Net employer cost is ${fmt(employerCost)} (normal pay minus benefit received). Revenue issues revised RPN — benefit portion processed as non-taxable addition; top-up taxed normally.`,
+    });
+  } else if (topup === 'partial') {
+    const pct          = parseFloat(document.getElementById('fl-partial-pct').value) || 50;
+    const targetPay    = round2(normalPeriod * pct / 100);
+    // If target > benefit, employer tops up the difference
+    const topupAmount  = round2(Math.max(0, targetPay - benefitPeriod));
+    const employerCost = topupAmount;
+    scenarios.push({
+      label: `Partial top-up — ${pct}% of normal salary`,
+      employerPays: targetPay,
+      benefitRoute: 'via employer',
+      topupAmount,
+      grossForTax: targetPay,
+      employerCost,
+      note: `Employee receives ${pct}% of normal salary (${fmt(targetPay)}/${freq === 'monthly' ? 'month' : 'week'}). DSP benefit (${fmt(benefitPeriod)}) is absorbed; employer pays the difference of ${fmt(topupAmount)}.`,
+    });
+  } else if (topup === 'tiered') {
+    const tieredWeeks  = parseInt(document.getElementById('fl-tiered-weeks').value) || 13;
+    const topupAmount  = round2(normalPeriod - benefitPeriod);
+    const employerCost = topupAmount;
+    scenarios.push({
+      label: `Tiered — full salary weeks 1–${tieredWeeks}`,
+      employerPays: normalPeriod,
+      benefitRoute: 'via employer',
+      topupAmount,
+      grossForTax: normalPeriod,
+      employerCost,
+      note: `Weeks 1–${tieredWeeks}: employer pays full normal salary (net cost ${fmt(employerCost)} after DSP benefit). Week ${tieredWeeks + 1} onwards: benefit only, no employer payment.`,
+    });
+    scenarios.push({
+      label: `Tiered — benefit only from week ${tieredWeeks + 1}`,
+      employerPays: 0,
+      benefitRoute: 'direct',
+      topupAmount: 0,
+      grossForTax: 0,
+      note: `From week ${tieredWeeks + 1}, DSP pays benefit directly to employee. Nothing goes through employer payroll. Revised RPN continues to apply.`,
+    });
+  }
+
+  renderFamilyLeave({
+    name: first + ' ' + last, lt, leaveType, scenarios,
+    weekly, normalPeriod, benefitPeriod, benefitWeekly, freq,
+    credits, cutoff,
+  });
+}
+
+function renderFamilyLeave(r) {
+  const { lt } = r;
+
+  // Render each scenario as a payslip-style breakdown
+  const scenarioHtml = r.scenarios.map((sc, si) => {
+    // Tax calculation on gross if applicable
+    let taxHtml = '';
+    let netPay = sc.grossForTax;
+
+    if (sc.grossForTax > 0) {
+      const taxResult = calculatePayslip({
+        grossPay: sc.grossForTax,
+        annualCredits: r.credits,
+        annualCutoff: r.cutoff,
+        frequency: r.freq,
+        periodNumber: 1,
+        basis: 'week1',
+        prsiClass: 'A',
+        uscRate: 'standard',
+        pensionEmployee: 0,
+        autoEnrolled: false,
+        bikValue: 0,
+        bikTreatment: 'notional',
+        aePhase: 1,
+        annualSalary: r.weekly * 52,
+        lptAmount: 0,
+        courtOrder: 0,
+        courtFloor: 0,
+      });
+      netPay = taxResult.netPay;
+      taxHtml = `
+        <div class="pay-section">
+          <div class="pay-section-title">Tax deductions on employer payment</div>
+          <div class="pay-line deduction">
+            <span class="line-label">PAYE<small>Week 1 basis — revised RPN applied</small></span>
+            <span class="line-amount">−${fmt(taxResult.payeDeducted)}</span>
+          </div>
+          <div class="pay-line deduction">
+            <span class="line-label">USC<small>Not charged on DSP benefit — only on employer top-up</small></span>
+            <span class="line-amount">−${fmt(taxResult.uscDeducted)}</span>
+          </div>
+          <div class="pay-line deduction">
+            <span class="line-label">PRSI (employee)<small>Not charged on DSP benefit — only on employer top-up</small></span>
+            <span class="line-amount">−${fmt(taxResult.prsiEmployee)}</span>
+          </div>
+        </div>`;
+    }
+
+    return `
+      <div style="margin-bottom:16px">
+        <div style="font-size:12px;font-weight:500;color:var(--ink-soft);margin-bottom:8px;font-family:'DM Mono',monospace;letter-spacing:.06em;text-transform:uppercase">
+          ${r.scenarios.length > 1 ? `Scenario ${si + 1}: ` : ''}${sc.label}
+        </div>
+        <div class="payslip">
+          <div class="payslip-body">
+            <div class="pay-section">
+              <div class="pay-section-title">Payments this period</div>
+              <div class="pay-line">
+                <span class="line-label">Normal gross pay<small>What employee would earn without leave</small></span>
+                <span class="line-amount" style="color:var(--ink-soft)">${fmt(r.normalPeriod)}</span>
+              </div>
+              ${sc.benefitRoute !== 'none' ? `<div class="pay-line">
+                <span class="line-label">DSP benefit (${lt.label})<small>${sc.benefitRoute === 'via employer' ? 'Paid to employer — processed as non-taxable addition' : 'Paid directly to employee — does not appear in payroll'}</small></span>
+                <span class="line-amount" style="color:var(--green-mid)">${sc.benefitRoute === 'via employer' ? fmt(r.benefitPeriod) : 'Direct to employee'}</span>
+              </div>` : ''}
+              ${sc.topupAmount > 0 ? `<div class="pay-line">
+                <span class="line-label">Employer top-up<small>Taxable — subject to PAYE, USC, PRSI</small></span>
+                <span class="line-amount">${fmt(sc.topupAmount)}</span>
+              </div>` : ''}
+              ${sc.grossForTax > 0 ? `<div class="pay-line">
+                <span class="line-label">Gross through payroll</span>
+                <span class="line-amount mono">${fmt(sc.grossForTax)}</span>
+              </div>` : ''}
+            </div>
+
+            ${taxHtml}
+
+            <div class="pay-totals">
+              ${sc.employerCost !== undefined && sc.topupAmount > 0 ? `<div class="total-row">
+                <span class="t-label">Net employer cost this period<small>(top-up after DSP benefit absorbed)</small></span>
+                <span class="t-amount orange">${fmt(sc.employerCost)}</span>
+              </div>` : ''}
+              <div class="total-row net">
+                <span class="t-label">Employee receives</span>
+                <span class="t-amount">${sc.grossForTax > 0 ? fmt(netPay) + (sc.benefitRoute === 'via employer' ? ` (incl. ${fmt(r.benefitPeriod)} benefit)` : '') : sc.benefitRoute === 'direct' ? fmt(r.benefitPeriod) + '/week (direct from DSP)' : '€0 — unpaid leave'}</span>
+              </div>
+            </div>
+
+            <div style="padding:10px 24px;font-size:11px;color:var(--ink-soft);line-height:1.6;border-top:1px solid var(--rule)">
+              ${sc.note}
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  const html = `
+    <div style="background:${lt.bg};border:1px solid ${lt.color}44;border-radius:8px;padding:16px;margin-bottom:20px;border-left:4px solid ${lt.color}">
+      <div style="font-weight:500;font-size:15px;color:${lt.color};margin-bottom:10px">${lt.label} — entitlement summary</div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;font-size:12px">
+        <div><span style="color:var(--ink-soft)">Paid weeks: </span><strong>${lt.paidWeeks > 0 ? lt.paidWeeks : 'None'}</strong></div>
+        <div><span style="color:var(--ink-soft)">Unpaid weeks: </span><strong>${lt.unpaidWeeks > 0 ? lt.unpaidWeeks : 'None'}</strong></div>
+        <div><span style="color:var(--ink-soft)">Benefit rate: </span><strong>${lt.benefit > 0 ? '€' + lt.benefit + '/week' : 'None'}</strong></div>
+        <div><span style="color:var(--ink-soft)">Paid by: </span><strong>${lt.paidBy}</strong></div>
+        <div><span style="color:var(--ink-soft)">Tax on benefit: </span><strong>${lt.taxOnBenefit}</strong></div>
+        <div><span style="color:var(--ink-soft)">Annual leave accrues: </span><strong style="color:${lt.annualLeaveAccrues ? 'var(--green)' : 'var(--orange)'}">${lt.annualLeaveAccrues ? 'Yes' : 'No'}</strong></div>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:var(--ink-soft);line-height:1.5;border-top:1px solid ${lt.color}22;padding-top:8px">
+        <strong>PRSI qualification:</strong> ${lt.prsiQual}<br>
+        <strong>Notice required:</strong> ${lt.noticeReq}
+      </div>
+    </div>
+
+    <div style="font-size:13px;font-weight:500;color:var(--ink);margin-bottom:12px">${r.name} — payroll breakdown</div>
+    ${scenarioHtml}
+
+    <div style="background:var(--green-pale);border:1px solid var(--rule);border-radius:6px;padding:12px 14px;font-size:11px;color:var(--ink-soft);line-height:1.7">
+      <strong style="color:var(--ink)">Payroll engine obligations during ${lt.label.toLowerCase()}:</strong><br>
+      ✓ Check for revised RPN before each pay run — Revenue adjusts credits/cut-off to collect PAYE on benefit<br>
+      ✓ Continue accruing annual leave and public holiday entitlement${lt.annualLeaveAccrues ? '' : ' — does not apply to parental leave'}<br>
+      ✓ Pension contributions — contractual benefits should continue unless contract states otherwise<br>
+      ✓ Flag employee leave status correctly on PSR submission to Revenue<br>
+      ✓ Process employer top-up (if any) as taxable pay; DSP benefit routed via employer as non-taxable addition
+    </div>`;
+
+  document.getElementById('family-output').innerHTML = html;
+}
+
+function toggleTopup() {
+  const v = document.getElementById('fl-topup').value;
+  document.getElementById('fl-partial-fields').style.display = v === 'partial' ? 'block' : 'none';
+  document.getElementById('fl-tiered-fields').style.display  = v === 'tiered'  ? 'block' : 'none';
+  calcFamilyLeave();
+}
+
 // ══ Page navigation ══
 function showPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -2793,6 +3240,7 @@ function showPage(id) {
   if (id === 'termination') calcTermination();
   if (id === 'holiday')     calcHoliday();
   if (id === 'tracker')     renderTracker();
+  if (id === 'family')      { renderFamilyRefCards(); calcFamilyLeave(); }
 }
 
 // Init
