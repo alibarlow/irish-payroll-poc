@@ -660,7 +660,10 @@
           </div>
           <div class="form-group">
             <label>Period number</label>
-            <input type="number" id="s-period" value="1" min="1" max="52" oninput="liveCalc()">
+            <input type="number" id="s-period" value="1" min="1" max="53" oninput="liveCalc()">
+          <div id="week53-notice" style="display:none;font-size:11px;color:var(--orange);margin-top:4px;padding:5px 8px;background:var(--orange-light);border-radius:4px;line-height:1.5">
+            ⚠ Week 53 — Revenue requires Week 1 basis for this extra period. Tax credits and cut-off applied for one period only.
+          </div>
           </div>
         </div>
 
@@ -752,10 +755,48 @@
           <div id="bik-treatment-note" style="font-size:11px;color:var(--ink-soft);padding:6px 0 4px;line-height:1.5"></div>
         </div>
 
+        <div class="section-divider">Post-net deductions</div>
+
+        <div class="toggle-row">
+          <label for="s-lpt-toggle">Local Property Tax (LPT)</label>
+          <label class="toggle">
+            <input type="checkbox" id="s-lpt-toggle" onchange="toggleLpt()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div id="lpt-field" style="display:none">
+          <div style="font-size:11px;color:var(--ink-soft);margin-bottom:8px;padding:6px 8px;background:var(--green-pale);border-left:3px solid var(--green-mid);border-radius:0 4px 4px 0;line-height:1.5">
+            Deducted from net pay. Amount set by Revenue instruction — not calculated by the engine. Enter the per-period amount from Revenue.
+          </div>
+          <div class="form-group">
+            <label>LPT per period (€)</label>
+            <input type="number" id="s-lpt" value="0" step="0.01" oninput="liveCalc()">
+          </div>
+        </div>
+
+        <div class="toggle-row">
+          <label for="s-court-toggle">Court order (attachment of earnings)</label>
+          <label class="toggle">
+            <input type="checkbox" id="s-court-toggle" onchange="toggleCourt()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div id="court-field" style="display:none">
+          <div style="font-size:11px;color:var(--ink-soft);margin-bottom:8px;padding:6px 8px;background:var(--green-pale);border-left:3px solid var(--green-mid);border-radius:0 4px 4px 0;line-height:1.5">
+            Deducted from net pay after LPT. Cannot reduce net pay below the protected earnings floor.
+          </div>
+          <div class="form-group">
+            <label>Court order deduction per period (€)</label>
+            <input type="number" id="s-court" value="0" step="0.01" oninput="liveCalc()">
+          </div>
+          <div class="form-group">
+            <label>Protected earnings floor (€) <span style="font-size:11px;color:var(--ink-soft)">— minimum net pay the employee must retain</span></label>
+            <input type="number" id="s-court-floor" value="0" step="0.01" oninput="liveCalc()">
+          </div>
+        </div>
+
       </div>
     </div>
-
-    <!-- Right: Payslip output -->
     <div id="payslip-output">
       <div class="empty-state">
         <div class="empty-icon">◎</div>
@@ -1037,7 +1078,8 @@ function calculatePayslip(params) {
     grossPay, annualCredits, annualCutoff,
     frequency, periodNumber, basis,
     prsiClass, uscRate, pensionEmployee,
-    autoEnrolled, bikValue, bikTreatment, aePhase, annualSalary
+    autoEnrolled, bikValue, bikTreatment, aePhase, annualSalary,
+    lptAmount, courtOrder, courtFloor
   } = params;
 
   const periods = PERIODS[frequency];
@@ -1077,9 +1119,20 @@ function calculatePayslip(params) {
     steps.push({ section: 'Gross to taxable pay', label: 'PRSI base (gross + BIK)', val: fmt(prsiBase) });
   }
 
+  // ── Week 53 detection ──
+  // Weekly payrolls can have a 53rd period in some years.
+  // Revenue requires Week 1 basis for Week 53 — credits and cut-off
+  // apply for one period only, regardless of prior cumulative position.
+  const isWeek53 = frequency === 'weekly' && periodNumber === 53;
+  const effectiveBasis = isWeek53 ? 'week1' : basis;
+  if (isWeek53) {
+    steps.push({ section: 'Week 53', label: 'Week 53 detected — Revenue requires Week 1 basis', val: '' });
+    steps.push({ section: 'Week 53', label: 'Credits and cut-off applied for 1 period only (not cumulative)', val: '' });
+  }
+
   let payeDeducted, uscDeducted, breakdown;
 
-  if (basis === 'emergency') {
+  if (effectiveBasis === 'emergency') {
     // Emergency tax — flat rate, no credits
     payeDeducted = round2(taxablePay * EMERGENCY_TAX_RATE);
     uscDeducted  = round2(taxablePay * EMERGENCY_USC_RATE);
@@ -1091,7 +1144,7 @@ function calculatePayslip(params) {
     // ── 2. PAYE ──
     let periodCredit, periodCutoff;
 
-    if (basis === 'week1') {
+    if (effectiveBasis === 'week1') {
       periodCredit = round2(annualCredits / periods);
       periodCutoff = round2(annualCutoff / periods);
     } else {
@@ -1106,8 +1159,8 @@ function calculatePayslip(params) {
     const grossTax = round2(standardBand * PAYE_STANDARD_RATE + higherBand * PAYE_HIGHER_RATE);
     payeDeducted   = Math.max(0, round2(grossTax - periodCredit));
 
-    steps.push({ section: 'PAYE calculation', label: basis === 'week1' ? 'Period credit (W1 basis)' : `Period credit (cumul. period ${periodNumber})`, val: fmt(periodCredit) });
-    steps.push({ section: 'PAYE calculation', label: basis === 'week1' ? 'Period cut-off (W1 basis)' : `Period cut-off (cumul. period ${periodNumber})`, val: fmt(periodCutoff) });
+    steps.push({ section: 'PAYE calculation', label: effectiveBasis === 'week1' ? 'Period credit (W1 basis)' : `Period credit (cumul. period ${periodNumber})`, val: fmt(periodCredit) });
+    steps.push({ section: 'PAYE calculation', label: effectiveBasis === 'week1' ? 'Period cut-off (W1 basis)' : `Period cut-off (cumul. period ${periodNumber})`, val: fmt(periodCutoff) });
     steps.push({ section: 'PAYE calculation', label: `Standard rate band (${fmt(standardBand)} × 20%)`, val: fmt(standardBand * PAYE_STANDARD_RATE) });
     if (higherBand > 0) steps.push({ section: 'PAYE calculation', label: `Higher rate band (${fmt(higherBand)} × 40%)`, val: fmt(higherBand * PAYE_HIGHER_RATE) });
     steps.push({ section: 'PAYE calculation', label: 'Gross tax', val: fmt(grossTax) });
@@ -1122,10 +1175,10 @@ function calculatePayslip(params) {
     if (uscRate !== 'exempt') {
       const bands = uscRate === 'reduced' ? USC_BANDS_REDUCED : USC_BANDS_STANDARD;
 
-      // For Week 1 basis USC: treat each period independently (same as PAYE Week 1)
+      // For Week 1 basis USC (including Week 53): treat each period independently
       // For cumulative: use period-number to pro-rate thresholds
-      const periodsToDate = basis === 'week1' ? 1 : periodNumber;
-      const priorPeriods  = basis === 'week1' ? 0 : periodNumber - 1;
+      const periodsToDate = effectiveBasis === 'week1' ? 1 : periodNumber;
+      const priorPeriods  = effectiveBasis === 'week1' ? 0 : periodNumber - 1;
 
       // YTD gross — for single payslip we assume consistent pay, so gross * periodsToDate
       // In production this would come from stored YTD figures
@@ -1153,7 +1206,7 @@ function calculatePayslip(params) {
       uscDeducted       = round2(Math.max(0, uscToDate - uscPrior));
 
       // Build steps for workings display
-      steps.push({ section: 'USC calculation', label: basis === 'week1' ? 'Basis: Week 1 (each period independent)' : `Cumulative to period ${periodNumber}`, val: '' });
+      steps.push({ section: 'USC calculation', label: effectiveBasis === 'week1' ? 'Basis: Week 1 (each period independent)' : `Cumulative to period ${periodNumber}`, val: '' });
       steps.push({ section: 'USC calculation', label: 'YTD gross', val: fmt(ytdGross) });
       let prev2 = 0;
       bands.forEach((band, i) => {
@@ -1215,16 +1268,40 @@ function calculatePayslip(params) {
 
   // ── 6. Net pay ──
   const totalDeductions = round2(payeDeducted + uscDeducted + prsiEmployee + pensionEmployee + aeEmployee);
-  const netPay = round2(grossPay - totalDeductions);
+  const netPayBeforePostNet = round2(grossPay - totalDeductions);
+
+  // ── 7. Post-net deductions (LPT and court orders) ──
+  // These are deducted AFTER net pay is calculated — they do not affect PAYE/USC/PRSI
+  const lpt = lptAmount || 0;
+  const courtAmt = courtOrder || 0;
+  const courtProtected = courtFloor || 0;
+
+  // LPT deducted first
+  const netAfterLpt = round2(netPayBeforePostNet - lpt);
+
+  // Court order — cannot reduce net below protected earnings floor
+  const maxCourtDeduction = Math.max(0, round2(netAfterLpt - courtProtected));
+  const actualCourtDeduction = Math.min(courtAmt, maxCourtDeduction);
+  const courtShortfall = round2(courtAmt - actualCourtDeduction);
+
+  const netPay = round2(netAfterLpt - actualCourtDeduction);
+
+  if (lpt > 0) steps.push({ section: 'Post-net deductions', label: 'Local Property Tax (Revenue instruction)', val: '−' + fmt(lpt) });
+  if (courtAmt > 0) {
+    steps.push({ section: 'Post-net deductions', label: `Court order deduction${actualCourtDeduction < courtAmt ? ' (partial — protected earnings floor applies)' : ''}`, val: '−' + fmt(actualCourtDeduction) });
+    if (courtShortfall > 0) steps.push({ section: 'Post-net deductions', label: `Court order shortfall — ${fmt(courtShortfall)} could not be deducted this period`, val: '' });
+  }
 
   return {
-    grossPay, taxablePay, netPay,
+    grossPay, taxablePay, netPayBeforePostNet, netPay,
     payeDeducted, uscDeducted,
     prsiEmployee, prsiEmployer,
     pensionEmployee: round2(pensionEmployee),
     aeEmployee, aeEmployer, aeState,
-    totalDeductions, bik,
-    basis, prsiClass, frequency, periodNumber,
+    totalDeductions,
+    lpt, actualCourtDeduction, courtShortfall,
+    bik, basis: effectiveBasis, isWeek53,
+    prsiClass, frequency, periodNumber,
     steps
   };
 }
@@ -1246,14 +1323,22 @@ function liveCalc() {
   const aeSalary = parseFloat(document.getElementById('s-ae-annual').value) || 0;
   const bik          = document.getElementById('s-bik-toggle').checked ? (parseFloat(document.getElementById('s-bik').value) || 0) : 0;
   const bikTreatment = document.getElementById('s-bik-toggle').checked ? document.getElementById('s-bik-treatment').value : 'notional';
+  const lptAmount    = document.getElementById('s-lpt-toggle').checked ? (parseFloat(document.getElementById('s-lpt').value) || 0) : 0;
+  const courtOrder   = document.getElementById('s-court-toggle').checked ? (parseFloat(document.getElementById('s-court').value) || 0) : 0;
+  const courtFloor   = document.getElementById('s-court-toggle').checked ? (parseFloat(document.getElementById('s-court-floor').value) || 0) : 0;
   const first   = document.getElementById('s-first').value || 'Employee';
   const last    = document.getElementById('s-last').value || '';
+
+  // Show/hide Week 53 notice
+  const w53notice = document.getElementById('week53-notice');
+  if (w53notice) w53notice.style.display = (freq === 'weekly' && period === 53) ? 'block' : 'none';
 
   const result = calculatePayslip({
     grossPay: gross, annualCredits: credits, annualCutoff: cutoff,
     frequency: freq, periodNumber: period, basis,
     prsiClass: prsi, uscRate: usc, pensionEmployee: pension,
-    autoEnrolled: ae, bikValue: bik, bikTreatment, aePhase, annualSalary: aeSalary
+    autoEnrolled: ae, bikValue: bik, bikTreatment, aePhase, annualSalary: aeSalary,
+    lptAmount, courtOrder, courtFloor
   });
 
   renderPayslip(result, first + ' ' + last, freq, period);
@@ -1346,11 +1431,26 @@ function renderPayslip(r, name, freq, period) {
 
         <div class="pay-totals">
           <div class="total-row">
-            <span class="t-label">Total deductions</span>
+            <span class="t-label">Total tax deductions</span>
             <span class="t-amount orange">−${fmt(r.totalDeductions)}</span>
           </div>
+          <div class="total-row">
+            <span class="t-label">Net pay before post-net deductions</span>
+            <span class="t-amount mono">${fmt(r.netPayBeforePostNet)}</span>
+          </div>
+          ${r.lpt > 0 ? `<div class="total-row">
+            <span class="t-label" style="font-size:12px;color:var(--ink-soft)">Less: Local Property Tax</span>
+            <span class="t-amount orange" style="font-size:12px">−${fmt(r.lpt)}</span>
+          </div>` : ''}
+          ${r.actualCourtDeduction > 0 ? `<div class="total-row">
+            <span class="t-label" style="font-size:12px;color:var(--ink-soft)">Less: Court order</span>
+            <span class="t-amount orange" style="font-size:12px">−${fmt(r.actualCourtDeduction)}</span>
+          </div>` : ''}
+          ${r.courtShortfall > 0 ? `<div style="font-size:11px;color:var(--orange);padding:4px 0;border-top:1px dashed var(--rule)">
+            ⚠ Court order shortfall ${fmt(r.courtShortfall)} — protected earnings floor prevented full deduction
+          </div>` : ''}
           <div class="total-row net">
-            <span class="t-label">Net pay</span>
+            <span class="t-label">Net pay${r.isWeek53 ? ' <span class="basis-badge basis-week1" style="font-family:var(--font-mono,monospace);font-size:10px">Week 53</span>' : ''}</span>
             <span class="t-amount">${fmt(r.netPay)}</span>
           </div>
         </div>
@@ -1383,6 +1483,18 @@ function toggleBreakdown(btn) {
   const bd = btn.nextElementSibling;
   bd.classList.toggle('open');
   btn.textContent = bd.classList.contains('open') ? '▾ Hide calculation workings' : '▸ Show calculation workings';
+}
+
+function toggleLpt() {
+  document.getElementById('lpt-field').style.display =
+    document.getElementById('s-lpt-toggle').checked ? 'block' : 'none';
+  liveCalc();
+}
+
+function toggleCourt() {
+  document.getElementById('court-field').style.display =
+    document.getElementById('s-court-toggle').checked ? 'block' : 'none';
+  liveCalc();
 }
 
 function toggleAe() {
