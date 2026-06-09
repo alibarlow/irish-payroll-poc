@@ -609,6 +609,8 @@
 <nav class="nav-tabs">
   <button class="nav-tab active" onclick="showPage('single')">Single payslip</button>
   <button class="nav-tab" onclick="showPage('payrun')">Pay run</button>
+  <button class="nav-tab" onclick="showPage('ssp')">Statutory sick pay</button>
+  <button class="nav-tab" onclick="showPage('termination')">Termination</button>
 </nav>
 
 <!-- ═══ SINGLE PAYSLIP PAGE ═══ -->
@@ -800,6 +802,176 @@
   </table>
 
   <div id="run-summary" class="run-summary" style="display:none"></div>
+</div>
+
+<!-- ═══ SSP PAGE ═══ -->
+<div id="page-ssp" class="page">
+  <div class="two-col">
+    <div>
+      <div class="card">
+        <div class="card-title">Employee details</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>First name</label>
+            <input type="text" id="ssp-first" value="Aoife" oninput="calcSSP()">
+          </div>
+          <div class="form-group">
+            <label>Surname</label>
+            <input type="text" id="ssp-last" value="Murphy" oninput="calcSSP()">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Working pattern</label>
+          <select id="ssp-pattern" onchange="toggleSSPPattern()">
+            <option value="fixed">Fixed hours</option>
+            <option value="variable">Variable / zero hours</option>
+          </select>
+        </div>
+
+        <div id="ssp-fixed-fields">
+          <div class="form-group">
+            <label>Weekly gross pay (€)</label>
+            <input type="number" id="ssp-weekly" value="600" step="1" oninput="calcSSP()">
+          </div>
+          <div class="form-group">
+            <label>Days worked per week</label>
+            <input type="number" id="ssp-days-pw" value="5" min="1" max="7" step="1" oninput="calcSSP()">
+          </div>
+        </div>
+
+        <div id="ssp-variable-fields" style="display:none">
+          <div style="font-size:12px;color:var(--ink-soft);margin-bottom:10px;line-height:1.5;padding:8px;background:var(--green-pale);border-radius:4px;border-left:3px solid var(--green-mid)">
+            Average daily rate is calculated over the 13 complete weeks before the sick day. Enter total earnings and days actually worked in that period.
+          </div>
+          <div class="form-group">
+            <label>Total gross pay — last 13 weeks (€)</label>
+            <input type="number" id="ssp-13w-pay" value="3200" step="1" oninput="calcSSP()">
+          </div>
+          <div class="form-group">
+            <label>Total days actually worked — last 13 weeks</label>
+            <input type="number" id="ssp-13w-days" value="48" min="1" step="1" oninput="calcSSP()">
+          </div>
+        </div>
+
+        <div class="section-divider">Absence details</div>
+        <div class="form-group">
+          <label>Number of sick days this absence</label>
+          <input type="number" id="ssp-sick-days" value="2" min="1" max="5" step="1" oninput="calcSSP()">
+        </div>
+        <div class="form-group">
+          <label>SSP days already used this calendar year</label>
+          <input type="number" id="ssp-days-used" value="0" min="0" max="5" step="1" oninput="calcSSP()">
+        </div>
+
+        <div class="section-divider">Employer scheme</div>
+        <div class="toggle-row">
+          <label for="ssp-enhanced">Employer pays more than statutory minimum</label>
+          <label class="toggle">
+            <input type="checkbox" id="ssp-enhanced" onchange="toggleSSPEnhanced()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div id="ssp-enhanced-field" style="display:none">
+          <div class="form-group">
+            <label>Employer sick pay rate (%)</label>
+            <input type="number" id="ssp-enhanced-rate" value="100" min="70" max="100" step="1" oninput="calcSSP()">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="ssp-output">
+      <div class="empty-state">
+        <div class="empty-icon">◎</div>
+        <p>SSP calculation will appear here.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TERMINATION PAGE ═══ -->
+<div id="page-termination" class="page">
+  <div class="two-col">
+    <div>
+      <div class="card">
+        <div class="card-title">Employee & service details</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>First name</label>
+            <input type="text" id="t-first" value="Pádraig" oninput="calcTermination()">
+          </div>
+          <div class="form-group">
+            <label>Surname</label>
+            <input type="text" id="t-last" value="Walsh" oninput="calcTermination()">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Complete years of service</label>
+            <input type="number" id="t-years" value="8" min="0" step="1" oninput="calcTermination()">
+          </div>
+          <div class="form-group">
+            <label>Weekly gross pay (€)</label>
+            <input type="number" id="t-weekly" value="900" step="1" oninput="calcTermination()">
+          </div>
+        </div>
+
+        <div class="section-divider">Payments on leaving</div>
+
+        <div class="toggle-row">
+          <label>Statutory redundancy</label>
+          <label class="toggle">
+            <input type="checkbox" id="t-stat-red" checked onchange="calcTermination()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="form-group">
+          <label>Notice pay (€) <span style="font-size:11px;color:var(--ink-soft)">— taxed as normal pay</span></label>
+          <input type="number" id="t-notice" value="2100" step="1" oninput="calcTermination()">
+        </div>
+
+        <div class="form-group">
+          <label>Holiday pay accrued (€) <span style="font-size:11px;color:var(--ink-soft)">— taxed as normal pay</span></label>
+          <input type="number" id="t-holiday" value="450" step="1" oninput="calcTermination()">
+        </div>
+
+        <div class="form-group">
+          <label>Ex-gratia payment (€) <span style="font-size:11px;color:var(--ink-soft)">— partial exemption may apply</span></label>
+          <input type="number" id="t-exgratia" value="15000" step="100" oninput="calcTermination()">
+        </div>
+
+        <div class="section-divider">Exemption details</div>
+        <div class="form-group">
+          <label>Exemption type</label>
+          <select id="t-exemption" onchange="calcTermination()">
+            <option value="basic">Basic exemption (€10,160 + €765 per year)</option>
+            <option value="increased">Increased exemption (Basic + €10,000)</option>
+          </select>
+        </div>
+        <div style="font-size:11px;color:var(--ink-soft);margin-bottom:10px;padding:6px 8px;background:var(--orange-light);border-left:3px solid var(--orange);border-radius:0 4px 4px 0;line-height:1.5">
+          The increased exemption is only available if the employee has not received a tax-free pension lump sum and has not claimed the increased exemption before. A lifetime cap of €200,000 applies across all employments.
+        </div>
+
+        <div class="section-divider">Tax details</div>
+        <div class="form-group">
+          <label>Annual tax credits (€)</label>
+          <input type="number" id="t-credits" value="3750" step="1" oninput="calcTermination()">
+        </div>
+        <div class="form-group">
+          <label>Annual cut-off point (€)</label>
+          <input type="number" id="t-cutoff" value="42000" step="100" oninput="calcTermination()">
+        </div>
+      </div>
+    </div>
+
+    <div id="termination-output">
+      <div class="empty-state">
+        <div class="empty-icon">◎</div>
+        <p>Termination payment breakdown will appear here.</p>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- Modal for pay run detail -->
@@ -1409,6 +1581,384 @@ function closeModal(e) {
   }
 }
 
+// ══ SSP ENGINE ══
+
+const SSP_RATE        = 0.70;
+const SSP_DAILY_CAP   = 110;
+const SSP_MAX_DAYS    = 5;
+const SSP_MIN_SERVICE = 13; // weeks
+
+function calcSSP() {
+  const first    = document.getElementById('ssp-first').value || 'Employee';
+  const last     = document.getElementById('ssp-last').value || '';
+  const pattern  = document.getElementById('ssp-pattern').value;
+  const sickDays = parseInt(document.getElementById('ssp-sick-days').value) || 1;
+  const usedDays = parseInt(document.getElementById('ssp-days-used').value) || 0;
+  const enhanced = document.getElementById('ssp-enhanced').checked;
+  const enhRate  = enhanced ? (parseFloat(document.getElementById('ssp-enhanced-rate').value) || 100) / 100 : SSP_RATE;
+
+  // Days remaining in entitlement
+  const remainingDays = Math.max(0, SSP_MAX_DAYS - usedDays);
+  const payableDays   = Math.min(sickDays, remainingDays);
+  const unpaidDays    = sickDays - payableDays;
+
+  // Daily rate
+  let avgDailyRate, dailyRateNote;
+  if (pattern === 'fixed') {
+    const weeklyPay = parseFloat(document.getElementById('ssp-weekly').value) || 0;
+    const daysPW    = parseFloat(document.getElementById('ssp-days-pw').value) || 5;
+    avgDailyRate    = round2(weeklyPay / daysPW);
+    dailyRateNote   = `Weekly pay ${fmt(weeklyPay)} ÷ ${daysPW} days/week`;
+  } else {
+    const pay13w  = parseFloat(document.getElementById('ssp-13w-pay').value) || 0;
+    const days13w = parseFloat(document.getElementById('ssp-13w-days').value) || 1;
+    avgDailyRate  = round2(pay13w / days13w);
+    dailyRateNote = `13-week total ${fmt(pay13w)} ÷ ${days13w} days worked`;
+  }
+
+  // SSP per day — apply rate then cap
+  const sspRateLabel   = enhanced ? `${Math.round(enhRate * 100)}% (employer scheme)` : '70% statutory';
+  const sspBeforeCap   = round2(avgDailyRate * enhRate);
+  const sspPerDay      = Math.min(sspBeforeCap, enhanced ? sspBeforeCap : SSP_DAILY_CAP);
+  const capApplied     = !enhanced && sspBeforeCap > SSP_DAILY_CAP;
+  const totalSSP       = round2(sspPerDay * payableDays);
+
+  // SSP is taxable — run through normal PAYE/USC/PRSI
+  // Use weekly equivalent for a single-period calc
+  const weeklyEquiv = round2(sspPerDay * 5);
+  const taxResult   = calculatePayslip({
+    grossPay: totalSSP, annualCredits: 3750, annualCutoff: 42000,
+    frequency: 'weekly', periodNumber: 1, basis: 'week1',
+    prsiClass: 'A', uscRate: 'standard', pensionEmployee: 0,
+    autoEnrolled: false, bikValue: 0, bikTreatment: 'notional',
+    aePhase: 1, annualSalary: weeklyEquiv * 52
+  });
+
+  renderSSP({
+    name: first + ' ' + last, pattern, avgDailyRate, dailyRateNote,
+    sspRateLabel, sspBeforeCap, sspPerDay, capApplied,
+    payableDays, unpaidDays, usedDays, remainingDays,
+    totalSSP, taxResult, enhanced, enhRate
+  });
+}
+
+function renderSSP(r) {
+  const warningHtml = r.unpaidDays > 0
+    ? `<div style="background:var(--orange-light);border:1px solid #e8c49a;border-radius:4px;padding:10px 14px;font-size:12px;color:var(--orange);margin-bottom:12px;line-height:1.5">
+        ⚠  ${r.unpaidDays} day${r.unpaidDays>1?'s':''} of this absence exceed${r.unpaidDays===1?'s':''} the annual entitlement and ${r.unpaidDays>1?'are':'is'} not payable as SSP.
+        The employee may be able to claim Illness Benefit from the Department of Social Protection from day ${SSP_MAX_DAYS - r.usedDays + 1}.
+       </div>` : '';
+
+  const html = `
+    <div class="payslip">
+      <div class="payslip-header">
+        <div class="company">Fourth — Statutory Sick Pay</div>
+        <div class="period">2026 · Sick Leave Act 2022 · Max ${SSP_MAX_DAYS} days per calendar year</div>
+        <div class="emp-meta">
+          <div class="meta-item">
+            <div class="meta-label">Employee</div>
+            <div class="meta-val">${r.name}</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Working pattern</div>
+            <div class="meta-val">${r.pattern === 'fixed' ? 'Fixed hours' : 'Variable hours'}</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Entitlement</div>
+            <div class="meta-val">${r.usedDays} used · ${r.remainingDays} remaining</div>
+          </div>
+        </div>
+      </div>
+      <div class="payslip-body">
+        ${warningHtml ? `<div style="padding:12px 24px 0">${warningHtml}</div>` : ''}
+
+        <div class="pay-section">
+          <div class="pay-section-title">Daily rate calculation</div>
+          <div class="pay-line">
+            <span class="line-label">Average daily rate<small>${r.dailyRateNote}</small></span>
+            <span class="line-amount">${fmt(r.avgDailyRate)}</span>
+          </div>
+          <div class="pay-line">
+            <span class="line-label">SSP rate applied<small>${r.sspRateLabel}</small></span>
+            <span class="line-amount">${fmt(r.sspBeforeCap)}/day</span>
+          </div>
+          ${r.capApplied ? `<div class="pay-line deduction">
+            <span class="line-label">Daily cap applied<small>Statutory maximum €${SSP_DAILY_CAP}/day</small></span>
+            <span class="line-amount">€${SSP_DAILY_CAP}.00/day</span>
+          </div>` : ''}
+          <div class="pay-line">
+            <span class="line-label">SSP per day</span>
+            <span class="line-amount mono green">${fmt(r.sspPerDay)}</span>
+          </div>
+        </div>
+
+        <div class="pay-section">
+          <div class="pay-section-title">This absence</div>
+          <div class="pay-line">
+            <span class="line-label">Payable sick days<small>${r.payableDays} of ${r.payableDays + r.unpaidDays} days absence</small></span>
+            <span class="line-amount">${r.payableDays}</span>
+          </div>
+          <div class="pay-line">
+            <span class="line-label">Total SSP payable<small>${fmt(r.sspPerDay)} × ${r.payableDays} days</small></span>
+            <span class="line-amount mono green">${fmt(r.totalSSP)}</span>
+          </div>
+        </div>
+
+        <div class="pay-section">
+          <div class="pay-section-title">Tax on SSP (taxable as normal pay)</div>
+          <div class="pay-line deduction">
+            <span class="line-label">PAYE</span>
+            <span class="line-amount">−${fmt(r.taxResult.payeDeducted)}</span>
+          </div>
+          <div class="pay-line deduction">
+            <span class="line-label">USC</span>
+            <span class="line-amount">−${fmt(r.taxResult.uscDeducted)}</span>
+          </div>
+          <div class="pay-line deduction">
+            <span class="line-label">PRSI (employee)</span>
+            <span class="line-amount">−${fmt(r.taxResult.prsiEmployee)}</span>
+          </div>
+        </div>
+
+        <div class="pay-totals">
+          <div class="total-row">
+            <span class="t-label">Total deductions</span>
+            <span class="t-amount orange">−${fmt(r.taxResult.totalDeductions)}</span>
+          </div>
+          <div class="total-row net">
+            <span class="t-label">Net SSP payment</span>
+            <span class="t-amount">${fmt(r.taxResult.netPay)}</span>
+          </div>
+        </div>
+
+        <div style="padding:10px 24px;font-size:11px;color:var(--ink-soft);line-height:1.6;border-top:1px solid var(--rule)">
+          Note: Tax on SSP is calculated here on the SSP amount only using Week 1 basis as an approximation. In a live payroll run, SSP is added to any other pay in the period and taxed cumulatively through the normal payslip calculation.
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('ssp-output').innerHTML = html;
+}
+
+function toggleSSPPattern() {
+  const v = document.getElementById('ssp-pattern').value === 'variable';
+  document.getElementById('ssp-fixed-fields').style.display    = v ? 'none' : 'block';
+  document.getElementById('ssp-variable-fields').style.display = v ? 'block' : 'none';
+  calcSSP();
+}
+
+function toggleSSPEnhanced() {
+  document.getElementById('ssp-enhanced-field').style.display =
+    document.getElementById('ssp-enhanced').checked ? 'block' : 'none';
+  calcSSP();
+}
+
+// ══ TERMINATION ENGINE ══
+
+const STAT_RED_WEEKLY_CAP  = 600;
+const BASIC_EXEMPT_BASE    = 10160;
+const BASIC_EXEMPT_PER_YR  = 765;
+const INCREASED_EXTRA      = 10000;
+const LIFETIME_CAP         = 200000;
+
+function calcTermination() {
+  const first     = document.getElementById('t-first').value || 'Employee';
+  const last      = document.getElementById('t-last').value || '';
+  const years     = parseInt(document.getElementById('t-years').value) || 0;
+  const weekly    = parseFloat(document.getElementById('t-weekly').value) || 0;
+  const statRed   = document.getElementById('t-stat-red').checked;
+  const notice    = parseFloat(document.getElementById('t-notice').value) || 0;
+  const holiday   = parseFloat(document.getElementById('t-holiday').value) || 0;
+  const exgratia  = parseFloat(document.getElementById('t-exgratia').value) || 0;
+  const exemType  = document.getElementById('t-exemption').value;
+  const credits   = parseFloat(document.getElementById('t-credits').value) || 3750;
+  const cutoff    = parseFloat(document.getElementById('t-cutoff').value) || 42000;
+
+  // ── Statutory redundancy (tax free) ──
+  const cappedWeekly  = Math.min(weekly, STAT_RED_WEEKLY_CAP);
+  const statRedAmount = statRed ? round2((2 * cappedWeekly * years) + cappedWeekly) : 0;
+
+  // ── Normal pay items (fully taxable) ──
+  const normalPayTotal = round2(notice + holiday);
+
+  // ── Ex-gratia exemption ──
+  const basicExempt    = round2(BASIC_EXEMPT_BASE + (BASIC_EXEMPT_PER_YR * years));
+  const exemptAmount   = exemType === 'increased'
+    ? Math.min(round2(basicExempt + INCREASED_EXTRA), LIFETIME_CAP)
+    : Math.min(basicExempt, LIFETIME_CAP);
+  const taxableExGratia = Math.max(0, round2(exgratia - exemptAmount));
+
+  // ── Tax on normal pay items ──
+  // Treated as a weekly lump for POC purposes
+  const normalPayTax = normalPayTotal > 0 ? calculatePayslip({
+    grossPay: normalPayTotal, annualCredits: credits, annualCutoff: cutoff,
+    frequency: 'weekly', periodNumber: 1, basis: 'week1',
+    prsiClass: 'A', uscRate: 'standard', pensionEmployee: 0,
+    autoEnrolled: false, bikValue: 0, bikTreatment: 'notional',
+    aePhase: 1, annualSalary: weekly * 52
+  }) : null;
+
+  // ── Tax on taxable ex-gratia (PAYE + USC only — no PRSI) ──
+  let exgratiaPaye = 0, exgratiaUsc = 0;
+  if (taxableExGratia > 0) {
+    // PAYE on taxable ex-gratia using annual credit
+    const taxableAfterCredit = Math.max(0, round2(taxableExGratia * PAYE_STANDARD_RATE) - credits);
+    // Simplified: apply 40% as lump sums typically hit higher rate
+    exgratiaPaye = round2(Math.max(0, taxableExGratia * PAYE_HIGHER_RATE - credits));
+    // USC on taxable ex-gratia
+    const uscBands = USC_BANDS_STANDARD;
+    let prev = 0, uscTotal = 0;
+    uscBands.forEach(band => {
+      const top   = Math.min(taxableExGratia, band.limit);
+      const slice = Math.max(0, top - prev);
+      uscTotal   += slice * band.rate;
+      prev = band.limit;
+      if (prev >= taxableExGratia) return;
+    });
+    exgratiaUsc = round2(uscTotal);
+  }
+
+  const totalTaxFree  = round2(statRedAmount + exemptAmount);
+  const totalTaxable  = round2(normalPayTotal + taxableExGratia);
+  const totalTax      = round2(
+    (normalPayTax ? normalPayTax.payeDeducted + normalPayTax.uscDeducted + normalPayTax.prsiEmployee : 0)
+    + exgratiaPaye + exgratiaUsc
+  );
+  const totalGross    = round2(statRedAmount + normalPayTotal + exgratia);
+  const totalNet      = round2(totalGross - totalTax);
+
+  renderTermination({
+    name: first + ' ' + last, years, weekly, cappedWeekly,
+    statRed, statRedAmount,
+    notice, holiday, normalPayTotal, normalPayTax,
+    exgratia, basicExempt, exemptAmount, exemType, taxableExGratia,
+    exgratiaPaye, exgratiaUsc,
+    totalTaxFree, totalTaxable, totalTax, totalGross, totalNet
+  });
+}
+
+function renderTermination(r) {
+  const html = `
+    <div class="payslip">
+      <div class="payslip-header">
+        <div class="company">Fourth — Termination Payment</div>
+        <div class="period">Redundancy & termination tax treatment · 2026</div>
+        <div class="emp-meta">
+          <div class="meta-item">
+            <div class="meta-label">Employee</div>
+            <div class="meta-val">${r.name}</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Service</div>
+            <div class="meta-val">${r.years} complete years</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Weekly pay</div>
+            <div class="meta-val">${fmt(r.weekly)}${r.weekly > STAT_RED_WEEKLY_CAP ? ` (capped at ${fmt(STAT_RED_WEEKLY_CAP)})` : ''}</div>
+          </div>
+        </div>
+      </div>
+      <div class="payslip-body">
+
+        ${r.statRed ? `
+        <div class="pay-section">
+          <div class="pay-section-title">Statutory redundancy — tax free</div>
+          <div class="pay-line">
+            <span class="line-label">Calculation<small>(2 weeks × ${r.years} years + 1 week) × ${fmt(r.cappedWeekly)}/week</small></span>
+            <span class="line-amount mono green">${fmt(r.statRedAmount)}</span>
+          </div>
+          <div class="pay-line">
+            <span class="line-label">Tax treatment</span>
+            <span class="line-amount" style="color:var(--green-mid);font-size:12px">Fully exempt — no PAYE, USC or PRSI</span>
+          </div>
+        </div>` : ''}
+
+        ${r.normalPayTotal > 0 ? `
+        <div class="pay-section">
+          <div class="pay-section-title">Normal pay items — fully taxable</div>
+          ${r.notice > 0 ? `<div class="pay-line">
+            <span class="line-label">Notice pay<small>Taxed as normal employment income</small></span>
+            <span class="line-amount">${fmt(r.notice)}</span>
+          </div>` : ''}
+          ${r.holiday > 0 ? `<div class="pay-line">
+            <span class="line-label">Holiday pay accrued<small>Taxed as normal employment income</small></span>
+            <span class="line-amount">${fmt(r.holiday)}</span>
+          </div>` : ''}
+          ${r.normalPayTax ? `
+          <div class="pay-line deduction">
+            <span class="line-label">PAYE</span>
+            <span class="line-amount">−${fmt(r.normalPayTax.payeDeducted)}</span>
+          </div>
+          <div class="pay-line deduction">
+            <span class="line-label">USC</span>
+            <span class="line-amount">−${fmt(r.normalPayTax.uscDeducted)}</span>
+          </div>
+          <div class="pay-line deduction">
+            <span class="line-label">PRSI (employee)</span>
+            <span class="line-amount">−${fmt(r.normalPayTax.prsiEmployee)}</span>
+          </div>` : ''}
+        </div>` : ''}
+
+        ${r.exgratia > 0 ? `
+        <div class="pay-section">
+          <div class="pay-section-title">Ex-gratia payment — partial exemption</div>
+          <div class="pay-line">
+            <span class="line-label">Ex-gratia amount</span>
+            <span class="line-amount">${fmt(r.exgratia)}</span>
+          </div>
+          <div class="pay-line">
+            <span class="line-label">Basic exemption<small>€${BASIC_EXEMPT_BASE.toLocaleString()} + (€${BASIC_EXEMPT_PER_YR} × ${r.years} years)</small></span>
+            <span class="line-amount" style="color:var(--green-mid)">${fmt(r.basicExempt)}</span>
+          </div>
+          ${r.exemType === 'increased' ? `<div class="pay-line">
+            <span class="line-label">Increased exemption addition<small>+€10,000 (no prior pension lump sum)</small></span>
+            <span class="line-amount" style="color:var(--green-mid)">+${fmt(INCREASED_EXTRA)}</span>
+          </div>` : ''}
+          <div class="pay-line">
+            <span class="line-label">Total exempt amount</span>
+            <span class="line-amount mono green">${fmt(r.exemptAmount)}</span>
+          </div>
+          <div class="pay-line ${r.taxableExGratia > 0 ? 'deduction' : ''}">
+            <span class="line-label">Taxable ex-gratia<small>${r.taxableExGratia > 0 ? 'PAYE + USC only — no PRSI on qualifying termination payments' : 'Fully covered by exemption'}</small></span>
+            <span class="line-amount">${fmt(r.taxableExGratia)}</span>
+          </div>
+          ${r.taxableExGratia > 0 ? `
+          <div class="pay-line deduction">
+            <span class="line-label">PAYE on taxable ex-gratia<small>40% rate (lump sums typically hit higher band)</small></span>
+            <span class="line-amount">−${fmt(r.exgratiaPaye)}</span>
+          </div>
+          <div class="pay-line deduction">
+            <span class="line-label">USC on taxable ex-gratia</span>
+            <span class="line-amount">−${fmt(r.exgratiaUsc)}</span>
+          </div>` : ''}
+        </div>` : ''}
+
+        <div class="pay-totals">
+          <div class="total-row">
+            <span class="t-label">Total gross termination package</span>
+            <span class="t-amount mono">${fmt(r.totalGross)}</span>
+          </div>
+          <div class="total-row">
+            <span class="t-label">Of which tax-free</span>
+            <span class="t-amount" style="color:var(--green-mid)">${fmt(r.totalTaxFree)}</span>
+          </div>
+          <div class="total-row">
+            <span class="t-label">Total tax deducted</span>
+            <span class="t-amount orange">−${fmt(r.totalTax)}</span>
+          </div>
+          <div class="total-row net">
+            <span class="t-label">Net received by employee</span>
+            <span class="t-amount">${fmt(r.totalNet)}</span>
+          </div>
+        </div>
+
+        <div style="padding:10px 24px;font-size:11px;color:var(--ink-soft);line-height:1.6;border-top:1px solid var(--rule)">
+          Note: Ex-gratia tax is approximated using the 40% higher rate and standard USC bands applied to the lump sum. A live payroll system would calculate this using the employee's marginal rate and cumulative YTD position. The lifetime €200,000 cap on tax-free ex-gratia amounts is not checked here — this must be verified against the employee's Revenue record. SCSB relief is not included in this POC.
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('termination-output').innerHTML = html;
+}
+
 // ══ Page navigation ══
 function showPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -1416,6 +1966,8 @@ function showPage(id) {
   document.getElementById('page-' + id).classList.add('active');
   event.target.classList.add('active');
   if (id === 'payrun') renderEmpTable();
+  if (id === 'ssp') calcSSP();
+  if (id === 'termination') calcTermination();
 }
 
 // Init
