@@ -707,9 +707,24 @@
         <div class="toggle-row">
           <label for="s-ae">Auto-enrolled (My Future Fund)</label>
           <label class="toggle">
-            <input type="checkbox" id="s-ae" onchange="liveCalc()">
+            <input type="checkbox" id="s-ae" onchange="toggleAe()">
             <span class="toggle-slider"></span>
           </label>
+        </div>
+        <div id="ae-fields" style="display:none">
+          <div class="form-group">
+            <label>Contribution phase</label>
+            <select id="s-ae-phase" onchange="liveCalc()">
+              <option value="1">Phase 1 — Years 1–3 (2026–2028) · 1.5%</option>
+              <option value="2">Phase 2 — Years 4–6 (2029–2031) · 3.0%</option>
+              <option value="3">Phase 3 — Years 7–9 (2032–2034) · 4.5%</option>
+              <option value="4">Phase 4 — Year 10+ (2035+) · 6.0%</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Annual salary (€) <span style="font-size:11px;color:var(--ink-soft)">— cap applies at €80,000</span></label>
+            <input type="number" id="s-ae-annual" value="42000" step="1000" oninput="liveCalc()">
+          </div>
         </div>
 
         <div class="toggle-row">
@@ -809,8 +824,14 @@ const USC_BANDS_REDUCED = [
   { limit: Infinity, rate: 0.02 }
 ];
 
-// PAYE rates
-const PAYE_STANDARD_RATE = 0.20;
+// My Future Fund — contribution rates by phase
+const AE_PHASES = {
+  1: { employee: 0.015, employer: 0.015, state: 0.005, label: 'Phase 1 (Years 1–3)', years: '2026–2028' },
+  2: { employee: 0.030, employer: 0.030, state: 0.010, label: 'Phase 2 (Years 4–6)', years: '2029–2031' },
+  3: { employee: 0.045, employer: 0.045, state: 0.015, label: 'Phase 3 (Years 7–9)', years: '2032–2034' },
+  4: { employee: 0.060, employer: 0.060, state: 0.020, label: 'Phase 4 (Year 10+)',  years: '2035+' },
+};
+const AE_SALARY_CAP = 80000; // Employer & state contributions capped at this annual salary
 const PAYE_HIGHER_RATE   = 0.40;
 
 // Emergency tax (no RPN)
@@ -832,7 +853,7 @@ function calculatePayslip(params) {
     grossPay, annualCredits, annualCutoff,
     frequency, periodNumber, basis,
     prsiClass, uscRate, pensionEmployee,
-    autoEnrolled, bikValue
+    autoEnrolled, bikValue, aePhase, annualSalary
   } = params;
 
   const periods = PERIODS[frequency];
@@ -955,15 +976,33 @@ function calculatePayslip(params) {
   steps.push({ section: 'PRSI', label: `Class ${prsiClass} employee (${(prsiRates.employee*100).toFixed(0)}%)`, val: fmt(prsiEmployee) });
   steps.push({ section: 'PRSI', label: `Class ${prsiClass} employer (${(prsiRates.employer*100).toFixed(2)}%)`, val: fmt(prsiEmployer) });
 
-  // ── 5. Pension auto-enrolment ──
+  // ── 5. Pension auto-enrolment (My Future Fund) ──
   let aeEmployee = 0, aeEmployer = 0, aeState = 0;
   if (autoEnrolled) {
-    aeEmployee = round2(grossPay * 0.015);
-    aeEmployer = round2(grossPay * 0.015);
-    aeState    = round2(aeEmployee / 3);
-    steps.push({ section: 'Auto-enrolment (My Future Fund)', label: 'Employee contribution (1.5%)', val: fmt(aeEmployee) });
-    steps.push({ section: 'Auto-enrolment (My Future Fund)', label: 'Employer contribution (1.5%)', val: fmt(aeEmployer) });
-    steps.push({ section: 'Auto-enrolment (My Future Fund)', label: 'State top-up (€1 per €3)', val: fmt(aeState) });
+    const phase      = AE_PHASES[aePhase] || AE_PHASES[1];
+    const periods    = PERIODS[frequency];
+    const annualGross = annualSalary || (grossPay * periods);
+
+    // Employer and state contributions are capped at €80,000 annual salary
+    const cappedAnnual    = Math.min(annualGross, AE_SALARY_CAP);
+    const cappedPeriodPay = round2(cappedAnnual / periods);
+
+    // Employee contributes on actual gross (no cap)
+    aeEmployee = round2(grossPay * phase.employee);
+    // Employer and state are based on capped pay
+    aeEmployer = round2(cappedPeriodPay * phase.employer);
+    aeState    = round2(cappedPeriodPay * phase.state);
+
+    const capApplied = annualGross > AE_SALARY_CAP;
+
+    steps.push({ section: `Auto-enrolment — ${phase.label} (${phase.years})`, label: `Rates: employee ${(phase.employee*100).toFixed(1)}% / employer ${(phase.employer*100).toFixed(1)}% / state ${(phase.state*100).toFixed(1)}%`, val: '' });
+    if (capApplied) {
+      steps.push({ section: `Auto-enrolment — ${phase.label} (${phase.years})`, label: `€80,000 salary cap applied — employer & state based on ${fmt(cappedPeriodPay)}/period`, val: '' });
+    }
+    steps.push({ section: `Auto-enrolment — ${phase.label} (${phase.years})`, label: `Employee contribution (${(phase.employee*100).toFixed(1)}% of ${fmt(grossPay)})`, val: fmt(aeEmployee) });
+    steps.push({ section: `Auto-enrolment — ${phase.label} (${phase.years})`, label: `Employer contribution (${(phase.employer*100).toFixed(1)}% of ${fmt(cappedPeriodPay)}${capApplied?' — capped':''})`, val: fmt(aeEmployer) });
+    steps.push({ section: `Auto-enrolment — ${phase.label} (${phase.years})`, label: `State top-up (${(phase.state*100).toFixed(1)}% of ${fmt(cappedPeriodPay)}${capApplied?' — capped':''})`, val: fmt(aeState) });
+    steps.push({ section: `Auto-enrolment — ${phase.label} (${phase.years})`, label: 'Total into pension this period', val: fmt(round2(aeEmployee + aeEmployer + aeState)) });
   }
 
   // ── 6. Net pay ──
@@ -995,6 +1034,8 @@ function liveCalc() {
   const usc     = document.getElementById('s-usc').value;
   const pension = parseFloat(document.getElementById('s-pension').value) || 0;
   const ae      = document.getElementById('s-ae').checked;
+  const aePhase = parseInt(document.getElementById('s-ae-phase').value) || 1;
+  const aeSalary = parseFloat(document.getElementById('s-ae-annual').value) || 0;
   const bik     = document.getElementById('s-bik-toggle').checked ? (parseFloat(document.getElementById('s-bik').value) || 0) : 0;
   const first   = document.getElementById('s-first').value || 'Employee';
   const last    = document.getElementById('s-last').value || '';
@@ -1003,7 +1044,7 @@ function liveCalc() {
     grossPay: gross, annualCredits: credits, annualCutoff: cutoff,
     frequency: freq, periodNumber: period, basis,
     prsiClass: prsi, uscRate: usc, pensionEmployee: pension,
-    autoEnrolled: ae, bikValue: bik
+    autoEnrolled: ae, bikValue: bik, aePhase, annualSalary: aeSalary
   });
 
   renderPayslip(result, first + ' ' + last, freq, period);
@@ -1133,6 +1174,12 @@ function toggleBreakdown(btn) {
   const bd = btn.nextElementSibling;
   bd.classList.toggle('open');
   btn.textContent = bd.classList.contains('open') ? '▾ Hide calculation workings' : '▸ Show calculation workings';
+}
+
+function toggleAe() {
+  document.getElementById('ae-fields').style.display =
+    document.getElementById('s-ae').checked ? 'block' : 'none';
+  liveCalc();
 }
 
 function toggleBik() {
