@@ -611,6 +611,7 @@
   <button class="nav-tab" onclick="showPage('payrun')">Pay run</button>
   <button class="nav-tab" onclick="showPage('ssp')">Statutory sick pay</button>
   <button class="nav-tab" onclick="showPage('termination')">Termination</button>
+  <button class="nav-tab" onclick="showPage('holiday')">Holiday pay</button>
 </nav>
 
 <!-- ═══ SINGLE PAYSLIP PAGE ═══ -->
@@ -1010,6 +1011,146 @@
       <div class="empty-state">
         <div class="empty-icon">◎</div>
         <p>Termination payment breakdown will appear here.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ HOLIDAY PAY PAGE ═══ -->
+<div id="page-holiday" class="page">
+  <div class="two-col">
+
+    <!-- Left: inputs -->
+    <div>
+      <div class="card">
+        <div class="card-title">Employee details</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>First name</label>
+            <input type="text" id="h-first" value="Siobhán" oninput="calcHoliday()">
+          </div>
+          <div class="form-group">
+            <label>Surname</label>
+            <input type="text" id="h-last" value="O'Brien" oninput="calcHoliday()">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Working pattern</label>
+          <select id="h-pattern" onchange="toggleHolidayPattern()">
+            <option value="fixed">Fixed hours — salaried or regular hours</option>
+            <option value="variable">Variable / zero hours</option>
+          </select>
+        </div>
+
+        <!-- Fixed pattern fields -->
+        <div id="h-fixed-fields">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Weekly gross pay (€)</label>
+              <input type="number" id="h-weekly-pay" value="800" step="1" oninput="calcHoliday()">
+            </div>
+            <div class="form-group">
+              <label>Days worked per week</label>
+              <input type="number" id="h-days-pw" value="5" min="1" max="7" step="1" oninput="calcHoliday()">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Regular shift premium / allowance per week (€) <span style="font-size:11px;color:var(--ink-soft)">— must be included in holiday pay</span></label>
+            <input type="number" id="h-premium" value="0" step="1" oninput="calcHoliday()">
+          </div>
+        </div>
+
+        <!-- Variable pattern fields -->
+        <div id="h-variable-fields" style="display:none">
+          <div style="font-size:12px;color:var(--ink-soft);margin-bottom:10px;padding:8px;background:var(--green-pale);border-radius:4px;border-left:3px solid var(--green-mid);line-height:1.5">
+            Holiday pay for variable hours uses the 13-week average (excluding weeks of no pay). Regular shift premiums must be included. Overtime is excluded.
+          </div>
+          <div class="form-group">
+            <label>Total earnings — last 13 working weeks (€) <span style="font-size:11px;color:var(--ink-soft)">— include premiums, exclude overtime</span></label>
+            <input type="number" id="h-13w-pay" value="7200" step="1" oninput="calcHoliday()">
+          </div>
+          <div class="form-group">
+            <label>Number of weeks with pay in that 13-week period <span style="font-size:11px;color:var(--ink-soft)">— exclude zero-pay weeks</span></label>
+            <input type="number" id="h-13w-weeks" value="11" min="1" max="13" step="1" oninput="calcHoliday()">
+          </div>
+        </div>
+
+        <div class="section-divider">Entitlement calculation</div>
+
+        <div class="form-group">
+          <label>Calculation basis</label>
+          <select id="h-method" onchange="toggleHolidayMethod()">
+            <option value="annual">Annual hours — worked 1,365+ hours (full year)</option>
+            <option value="monthly">Monthly accrual — worked 117+ hours per month</option>
+            <option value="8pct">8% rule — variable / irregular hours</option>
+          </select>
+        </div>
+
+        <div id="h-annual-fields">
+          <div class="form-group">
+            <label>Total hours worked this leave year</label>
+            <input type="number" id="h-annual-hours" value="1500" step="1" oninput="calcHoliday()">
+          </div>
+        </div>
+
+        <div id="h-monthly-fields" style="display:none">
+          <div class="form-group">
+            <label>Complete qualifying months worked (117+ hours each)</label>
+            <input type="number" id="h-months" value="12" min="1" max="12" step="1" oninput="calcHoliday()">
+          </div>
+        </div>
+
+        <div id="h-8pct-fields" style="display:none">
+          <div class="form-group">
+            <label>Total hours worked this leave year</label>
+            <input type="number" id="h-8pct-hours" value="680" step="1" oninput="calcHoliday()">
+          </div>
+        </div>
+
+        <div class="section-divider">Leave being taken</div>
+
+        <div class="form-group">
+          <label>Days of leave being taken this request</label>
+          <input type="number" id="h-leave-days" value="5" min="0.5" step="0.5" oninput="calcHoliday()">
+        </div>
+        <div class="form-group">
+          <label>Leave days already taken this year</label>
+          <input type="number" id="h-taken" value="0" min="0" step="0.5" oninput="calcHoliday()">
+        </div>
+
+        <div class="section-divider">Public holidays</div>
+        <div style="font-size:11px;color:var(--ink-soft);margin-bottom:10px;line-height:1.6;padding:6px 8px;background:var(--green-pale);border-left:3px solid var(--green-mid);border-radius:0 4px 4px 0">
+          Public holidays are separate from annual leave. There are 10 per year. Part-time employees must have worked 40+ hours in the prior 5 weeks to qualify.
+        </div>
+        <div class="toggle-row">
+          <label for="h-ph-qualifies">Employee qualifies for public holiday benefit</label>
+          <label class="toggle">
+            <input type="checkbox" id="h-ph-qualifies" checked onchange="calcHoliday()">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div class="form-group">
+          <label>Number of public holidays in this period</label>
+          <input type="number" id="h-ph-count" value="1" min="0" max="10" step="1" oninput="calcHoliday()">
+        </div>
+        <div class="form-group">
+          <label>Public holiday treatment</label>
+          <select id="h-ph-treatment" onchange="calcHoliday()">
+            <option value="dayoff">Paid day off on the day</option>
+            <option value="extra-leave">Extra day added to annual leave</option>
+            <option value="extra-pay">Additional day's pay (worked the holiday)</option>
+            <option value="lieu">Paid day off within one month</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: output -->
+    <div id="holiday-output">
+      <div class="empty-state">
+        <div class="empty-icon">◎</div>
+        <p>Holiday pay calculation will appear here.</p>
       </div>
     </div>
   </div>
@@ -2071,15 +2212,294 @@ function renderTermination(r) {
   document.getElementById('termination-output').innerHTML = html;
 }
 
+// ══ HOLIDAY PAY ENGINE ══
+
+const PUBLIC_HOLIDAYS_2026 = [
+  { date: '2026-01-01', name: "New Year's Day" },
+  { date: '2026-02-02', name: "St Brigid's Day" },
+  { date: '2026-03-17', name: "St Patrick's Day" },
+  { date: '2026-04-06', name: 'Easter Monday' },
+  { date: '2026-05-04', name: 'May Bank Holiday' },
+  { date: '2026-06-01', name: 'June Bank Holiday' },
+  { date: '2026-08-03', name: 'August Bank Holiday' },
+  { date: '2026-10-26', name: 'October Bank Holiday' },
+  { date: '2026-12-25', name: 'Christmas Day' },
+  { date: '2026-12-26', name: "St Stephen's Day" },
+];
+
+const MAX_LEAVE_WEEKS = 4; // statutory maximum
+
+function calcHoliday() {
+  const first    = document.getElementById('h-first').value || 'Employee';
+  const last     = document.getElementById('h-last').value || '';
+  const pattern  = document.getElementById('h-pattern').value;
+  const method   = document.getElementById('h-method').value;
+  const leaveDays = parseFloat(document.getElementById('h-leave-days').value) || 0;
+  const takenDays = parseFloat(document.getElementById('h-taken').value) || 0;
+  const phQualifies = document.getElementById('h-ph-qualifies').checked;
+  const phCount  = parseInt(document.getElementById('h-ph-count').value) || 0;
+  const phTreatment = document.getElementById('h-ph-treatment').value;
+
+  // ── 1. Daily pay rate ──
+  let weeklyRate, dailyRate, rateNote, weeklyRateNote;
+
+  if (pattern === 'fixed') {
+    const weeklyPay = parseFloat(document.getElementById('h-weekly-pay').value) || 0;
+    const daysPW    = parseFloat(document.getElementById('h-days-pw').value) || 5;
+    const premium   = parseFloat(document.getElementById('h-premium').value) || 0;
+    weeklyRate      = round2(weeklyPay + premium);
+    dailyRate       = round2(weeklyRate / daysPW);
+    rateNote        = `${fmt(weeklyPay)} base${premium > 0 ? ` + ${fmt(premium)} premium` : ''} = ${fmt(weeklyRate)}/week ÷ ${daysPW} days`;
+    weeklyRateNote  = `Normal weekly rate: ${fmt(weeklyRate)}`;
+  } else {
+    const pay13w   = parseFloat(document.getElementById('h-13w-pay').value) || 0;
+    const weeks13w = parseFloat(document.getElementById('h-13w-weeks').value) || 1;
+    weeklyRate     = round2(pay13w / weeks13w);
+    dailyRate      = round2(weeklyRate / 5); // use 5 as standard divisor for daily from weekly
+    rateNote       = `13-week earnings ${fmt(pay13w)} ÷ ${weeks13w} qualifying weeks (zero-pay weeks excluded)`;
+    weeklyRateNote = `Average weekly rate: ${fmt(weeklyRate)}`;
+  }
+
+  // ── 2. Entitlement calculation ──
+  let entitlementDays, entitlementNote, entitlementMethod, daysPerWeek;
+
+  if (pattern === 'fixed') {
+    daysPerWeek = parseFloat(document.getElementById('h-days-pw').value) || 5;
+  } else {
+    daysPerWeek = 5; // use 5 for 8% rule conversion
+  }
+
+  const maxDays = round2(MAX_LEAVE_WEEKS * daysPerWeek);
+
+  if (method === 'annual') {
+    const hoursWorked = parseFloat(document.getElementById('h-annual-hours').value) || 0;
+    if (hoursWorked >= 1365) {
+      entitlementDays = maxDays;
+      entitlementNote = `${hoursWorked} hours worked ≥ 1,365 threshold → full 4 working weeks`;
+    } else {
+      // Pro-rata: calculate partial entitlement based on hours
+      entitlementDays = round2(Math.min((hoursWorked / 1365) * maxDays, maxDays));
+      entitlementNote = `${hoursWorked} hours worked < 1,365 → pro-rata: ${hoursWorked}/1,365 × ${maxDays} days`;
+    }
+    entitlementMethod = 'Method 1 — Annual hours';
+  } else if (method === 'monthly') {
+    const months = parseInt(document.getElementById('h-months').value) || 0;
+    const accrualPerMonth = round2(daysPerWeek / 3);
+    entitlementDays = round2(Math.min(months * accrualPerMonth, maxDays));
+    entitlementNote = `${months} qualifying months × ${accrualPerMonth} days/month (⅓ of ${daysPerWeek}-day week)`;
+    entitlementMethod = 'Method 2 — Monthly accrual (117+ hours/month)';
+  } else {
+    // 8% rule
+    const hoursWorked = parseFloat(document.getElementById('h-8pct-hours').value) || 0;
+    const leaveHours  = round2(hoursWorked * 0.08);
+    const maxHours    = round2(maxDays * (hoursWorked / (hoursWorked || 1))); // cap check
+    // Cap at 4 working weeks equivalent in hours
+    // Assume average 8hr day for conversion: cap = maxDays * 8
+    const capHours    = maxDays * 8;
+    const cappedHours = Math.min(leaveHours, capHours);
+    const cappedDays  = round2(cappedHours / 8);
+    entitlementDays   = cappedDays;
+    entitlementNote   = `${hoursWorked} hours × 8% = ${leaveHours} leave hours${leaveHours > capHours ? ` (capped at ${capHours} hours / ${maxDays} days)` : ''} ÷ 8 hrs/day = ${cappedDays} days`;
+    entitlementMethod = 'Method 3 — 8% rule (variable/irregular hours)';
+  }
+
+  // ── 3. Remaining entitlement ──
+  const remainingDays  = round2(Math.max(0, entitlementDays - takenDays));
+  const requestedDays  = Math.min(leaveDays, remainingDays);
+  const excessDays     = round2(leaveDays - requestedDays);
+
+  // ── 4. Holiday pay amount ──
+  const holidayPay     = round2(requestedDays * dailyRate);
+
+  // ── 5. Public holiday pay ──
+  let phPay = 0, phPayNote = '';
+  if (phQualifies && phCount > 0) {
+    const phDailyRate = round2(weeklyRate / 5); // 1/5 of weekly rate
+    if (phTreatment === 'extra-pay') {
+      phPay     = round2(phDailyRate * phCount);
+      phPayNote = `${phCount} × ${fmt(phDailyRate)} (1/5 of weekly rate ${fmt(weeklyRate)}) additional pay`;
+    } else if (phTreatment === 'dayoff' || phTreatment === 'lieu') {
+      phPay     = round2(phDailyRate * phCount);
+      phPayNote = `${phCount} × ${fmt(phDailyRate)} paid day${phCount > 1 ? 's' : ''} off (1/5 of weekly rate)`;
+    } else {
+      phPay     = 0;
+      phPayNote = `${phCount} extra day${phCount > 1 ? 's' : ''} added to annual leave entitlement — no additional cash payment`;
+    }
+  }
+
+  const totalHolidayPayment = round2(holidayPay + phPay);
+
+  renderHoliday({
+    name: first + ' ' + last, pattern, method,
+    weeklyRate, dailyRate, rateNote, weeklyRateNote,
+    entitlementDays, entitlementNote, entitlementMethod, maxDays,
+    takenDays, remainingDays, leaveDays: requestedDays, excessDays,
+    holidayPay, phQualifies, phCount, phTreatment, phPay, phPayNote,
+    totalHolidayPayment
+  });
+}
+
+function renderHoliday(r) {
+  const phTreatmentLabels = {
+    'dayoff':    'Paid day off on the day',
+    'extra-leave': 'Extra day added to annual leave',
+    'extra-pay': 'Additional day\'s pay (worked the holiday)',
+    'lieu':      'Paid day off within one month'
+  };
+
+  const excessHtml = r.excessDays > 0
+    ? `<div style="background:var(--orange-light);border:1px solid #e8c49a;border-radius:4px;padding:10px 14px;font-size:12px;color:var(--orange);margin:12px 24px 0;line-height:1.5">
+        ⚠  ${r.excessDays} day${r.excessDays !== 1 ? 's' : ''} requested exceed the remaining entitlement of ${r.remainingDays} days. Only ${r.leaveDays} days are payable.
+       </div>` : '';
+
+  const html = `
+    <div class="payslip">
+      <div class="payslip-header">
+        <div class="company">Fourth — Holiday Pay</div>
+        <div class="period">Organisation of Working Time Act 1997 · Leave year 2026</div>
+        <div class="emp-meta">
+          <div class="meta-item">
+            <div class="meta-label">Employee</div>
+            <div class="meta-val">${r.name}</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Pattern</div>
+            <div class="meta-val">${r.pattern === 'fixed' ? 'Fixed hours' : 'Variable hours'}</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Entitlement</div>
+            <div class="meta-val">${r.entitlementDays} days total</div>
+          </div>
+        </div>
+      </div>
+      <div class="payslip-body">
+        ${excessHtml ? `${excessHtml}<div style="height:12px"></div>` : ''}
+
+        <div class="pay-section">
+          <div class="pay-section-title">Entitlement — ${r.entitlementMethod}</div>
+          <div class="pay-line">
+            <span class="line-label">Annual entitlement<small>${r.entitlementNote}</small></span>
+            <span class="line-amount mono">${r.entitlementDays} days</span>
+          </div>
+          <div class="pay-line">
+            <span class="line-label">Days already taken this year</span>
+            <span class="line-amount">${r.takenDays} days</span>
+          </div>
+          <div class="pay-line">
+            <span class="line-label">Days remaining</span>
+            <span class="line-amount mono green">${r.remainingDays} days</span>
+          </div>
+        </div>
+
+        <div class="pay-section">
+          <div class="pay-section-title">Pay rate</div>
+          <div class="pay-line">
+            <span class="line-label">${r.pattern === 'fixed' ? 'Normal weekly rate' : '13-week average weekly rate'}<small>${r.rateNote}</small></span>
+            <span class="line-amount">${fmt(r.weeklyRate)}/week</span>
+          </div>
+          <div class="pay-line">
+            <span class="line-label">Daily rate<small>Weekly rate ÷ days per week</small></span>
+            <span class="line-amount">${fmt(r.dailyRate)}/day</span>
+          </div>
+        </div>
+
+        <div class="pay-section">
+          <div class="pay-section-title">This leave request</div>
+          <div class="pay-line">
+            <span class="line-label">Days to be paid</span>
+            <span class="line-amount">${r.leaveDays}</span>
+          </div>
+          <div class="pay-line">
+            <span class="line-label">Holiday pay<small>${fmt(r.dailyRate)} × ${r.leaveDays} days</small></span>
+            <span class="line-amount mono green">${fmt(r.holidayPay)}</span>
+          </div>
+        </div>
+
+        ${r.phQualifies && r.phCount > 0 ? `
+        <div class="pay-section">
+          <div class="pay-section-title">Public holidays — ${r.phCount} day${r.phCount > 1 ? 's' : ''}</div>
+          <div class="pay-line">
+            <span class="line-label">Treatment<small>${phTreatmentLabels[r.phTreatment]}</small></span>
+            <span class="line-amount" style="font-size:11px;color:var(--ink-soft)">${r.phTreatment === 'extra-leave' ? 'No cash payment' : fmt(r.phPay)}</span>
+          </div>
+          ${r.phPay > 0 ? `<div class="pay-line">
+            <span class="line-label">Public holiday pay<small>${r.phPayNote}</small></span>
+            <span class="line-amount mono green">${fmt(r.phPay)}</span>
+          </div>` : `<div class="pay-line">
+            <span class="line-label">Added to leave balance<small>${r.phPayNote}</small></span>
+            <span class="line-amount" style="color:var(--green-mid);font-size:12px">+${r.phCount} day${r.phCount > 1 ? 's' : ''} leave</span>
+          </div>`}
+        </div>` : ''}
+
+        ${!r.phQualifies && r.phCount > 0 ? `
+        <div class="pay-section">
+          <div class="pay-section-title">Public holidays</div>
+          <div class="pay-line">
+            <span class="line-label" style="color:var(--orange)">Employee does not qualify<small>Must have worked 40+ hours in the 5 weeks prior to the public holiday</small></span>
+            <span class="line-amount" style="color:var(--orange)">No entitlement</span>
+          </div>
+        </div>` : ''}
+
+        <div class="pay-totals">
+          <div class="total-row">
+            <span class="t-label">Holiday pay</span>
+            <span class="t-amount mono">${fmt(r.holidayPay)}</span>
+          </div>
+          ${r.phPay > 0 ? `<div class="total-row">
+            <span class="t-label">Public holiday pay</span>
+            <span class="t-amount mono">${fmt(r.phPay)}</span>
+          </div>` : ''}
+          <div class="total-row net">
+            <span class="t-label">Total holiday payment</span>
+            <span class="t-amount">${fmt(r.totalHolidayPayment)}</span>
+          </div>
+        </div>
+
+        <div style="padding:10px 24px;font-size:11px;color:var(--ink-soft);line-height:1.6;border-top:1px solid var(--rule)">
+          Holiday pay must be paid before the leave is taken. It is subject to PAYE, USC, and PRSI in the normal way as part of the regular pay run. Overtime is excluded from holiday pay calculations but regular shift premiums and rostered allowances must be included.
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="card-title">2026 Public holidays</div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        ${PUBLIC_HOLIDAYS_2026.map(ph => `
+          <tr style="border-bottom:1px solid var(--rule)">
+            <td style="padding:6px 0;color:var(--ink-mid)">${ph.name}</td>
+            <td style="padding:6px 0;text-align:right;font-family:'DM Mono',monospace;color:var(--ink-soft)">${new Date(ph.date).toLocaleDateString('en-IE', { weekday:'short', day:'numeric', month:'short' })}</td>
+          </tr>`).join('')}
+      </table>
+    </div>`;
+
+  document.getElementById('holiday-output').innerHTML = html;
+}
+
+function toggleHolidayPattern() {
+  const v = document.getElementById('h-pattern').value === 'variable';
+  document.getElementById('h-fixed-fields').style.display    = v ? 'none' : 'block';
+  document.getElementById('h-variable-fields').style.display = v ? 'block' : 'none';
+  calcHoliday();
+}
+
+function toggleHolidayMethod() {
+  const m = document.getElementById('h-method').value;
+  document.getElementById('h-annual-fields').style.display  = m === 'annual' ? 'block' : 'none';
+  document.getElementById('h-monthly-fields').style.display = m === 'monthly' ? 'block' : 'none';
+  document.getElementById('h-8pct-fields').style.display    = m === '8pct' ? 'block' : 'none';
+  calcHoliday();
+}
+
 // ══ Page navigation ══
 function showPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
   document.getElementById('page-' + id).classList.add('active');
   event.target.classList.add('active');
-  if (id === 'payrun') renderEmpTable();
-  if (id === 'ssp') calcSSP();
+  if (id === 'payrun')      renderEmpTable();
+  if (id === 'ssp')         calcSSP();
   if (id === 'termination') calcTermination();
+  if (id === 'holiday')     calcHoliday();
 }
 
 // Init
