@@ -728,7 +728,7 @@
         </div>
 
         <div class="toggle-row">
-          <label for="s-bik">Benefit in kind</label>
+          <label for="s-bik-toggle">Benefit in kind (BIK)</label>
           <label class="toggle">
             <input type="checkbox" id="s-bik-toggle" onchange="toggleBik()">
             <span class="toggle-slider"></span>
@@ -736,9 +736,18 @@
         </div>
         <div id="bik-field" style="display:none">
           <div class="form-group">
-            <label>BIK value (€)</label>
+            <label>BIK value this period (€)</label>
             <input type="number" id="s-bik" value="0" step="0.01" oninput="liveCalc()">
           </div>
+          <div class="form-group">
+            <label>How is this benefit being taxed?</label>
+            <select id="s-bik-treatment" onchange="liveCalc()">
+              <option value="notional">Not yet in RPN — add as notional pay (PAYE + USC + PRSI)</option>
+              <option value="rpn">Already in RPN — adjust PRSI base only</option>
+              <option value="prsi_only">PAYE-exempt benefit — PRSI only</option>
+            </select>
+          </div>
+          <div id="bik-treatment-note" style="font-size:11px;color:var(--ink-soft);padding:6px 0 4px;line-height:1.5"></div>
         </div>
 
       </div>
@@ -832,6 +841,9 @@ const AE_PHASES = {
   4: { employee: 0.060, employer: 0.060, state: 0.020, label: 'Phase 4 (Year 10+)',  years: '2035+' },
 };
 const AE_SALARY_CAP = 80000; // Employer & state contributions capped at this annual salary
+
+// PAYE rates
+const PAYE_STANDARD_RATE = 0.20;
 const PAYE_HIGHER_RATE   = 0.40;
 
 // Emergency tax (no RPN)
@@ -853,21 +865,45 @@ function calculatePayslip(params) {
     grossPay, annualCredits, annualCutoff,
     frequency, periodNumber, basis,
     prsiClass, uscRate, pensionEmployee,
-    autoEnrolled, bikValue, aePhase, annualSalary
+    autoEnrolled, bikValue, bikTreatment, aePhase, annualSalary
   } = params;
 
   const periods = PERIODS[frequency];
   const steps = [];
 
-  // ── 1. Taxable pay ──
+  // ── 1. Taxable pay — depends on BIK treatment ──
   const bik = bikValue || 0;
-  const grossWithBik = round2(grossPay + bik);
+  const treatment = bikTreatment || 'notional';
+
+  // notional: BIK not yet in RPN — add to gross for PAYE, USC, and PRSI
+  // rpn:      BIK already in RPN — PAYE/USC handled by adjusted RPN, only PRSI base needs BIK
+  // prsi_only: PAYE-exempt benefit — PRSI only, no effect on PAYE or USC
+  const bikForPaye = (bik > 0 && treatment === 'notional') ? bik : 0;
+  const bikForUsc  = (bik > 0 && treatment === 'notional') ? bik : 0;
+  const bikForPrsi = (bik > 0) ? bik : 0; // PRSI always includes BIK value regardless of treatment
+
+  const grossWithBik = round2(grossPay + bikForPaye);
   const pensionRelief = round2(pensionEmployee);
   const taxablePay = round2(grossWithBik - pensionRelief);
+  const prsiBase   = round2(grossPay + bikForPrsi);
+
   steps.push({ section: 'Gross to taxable pay', label: 'Gross pay', val: fmt(grossPay) });
-  if (bik > 0) steps.push({ section: 'Gross to taxable pay', label: 'Benefit in kind added', val: fmt(bik) });
+  if (bik > 0) {
+    const treatmentLabels = {
+      notional:  'BIK — notional pay addition (not yet in RPN)',
+      rpn:       'BIK — already in RPN (PRSI adjustment only)',
+      prsi_only: 'BIK — PAYE-exempt (PRSI only)'
+    };
+    steps.push({ section: 'Gross to taxable pay', label: treatmentLabels[treatment], val: fmt(bik) });
+    if (treatment !== 'notional') {
+      steps.push({ section: 'Gross to taxable pay', label: 'BIK not added to PAYE/USC base (handled via RPN or exempt)', val: '' });
+    }
+  }
   steps.push({ section: 'Gross to taxable pay', label: 'Less pension contribution', val: '−' + fmt(pensionRelief) });
-  steps.push({ section: 'Gross to taxable pay', label: 'Taxable pay', val: fmt(taxablePay) });
+  steps.push({ section: 'Gross to taxable pay', label: 'Taxable pay (PAYE/USC base)', val: fmt(taxablePay) });
+  if (bik > 0 && treatment !== 'notional') {
+    steps.push({ section: 'Gross to taxable pay', label: 'PRSI base (gross + BIK)', val: fmt(prsiBase) });
+  }
 
   let payeDeducted, uscDeducted, breakdown;
 
@@ -969,12 +1005,12 @@ function calculatePayslip(params) {
     steps.push({ section: 'USC calculation', label: 'USC deducted this period', val: fmt(uscDeducted) });
   }
 
-  // ── 4. PRSI ──
+  // ── 4. PRSI — always calculated on gross + BIK ──
   const prsiRates = PRSI[prsiClass] || PRSI['A'];
-  const prsiEmployee = round2(grossPay * prsiRates.employee);
-  const prsiEmployer = round2(grossPay * prsiRates.employer);
-  steps.push({ section: 'PRSI', label: `Class ${prsiClass} employee (${(prsiRates.employee*100).toFixed(0)}%)`, val: fmt(prsiEmployee) });
-  steps.push({ section: 'PRSI', label: `Class ${prsiClass} employer (${(prsiRates.employer*100).toFixed(2)}%)`, val: fmt(prsiEmployer) });
+  const prsiEmployee = round2(prsiBase * prsiRates.employee);
+  const prsiEmployer = round2(prsiBase * prsiRates.employer);
+  steps.push({ section: 'PRSI', label: `Class ${prsiClass} employee (${(prsiRates.employee*100).toFixed(0)}% of ${fmt(prsiBase)})`, val: fmt(prsiEmployee) });
+  steps.push({ section: 'PRSI', label: `Class ${prsiClass} employer (${(prsiRates.employer*100).toFixed(2)}% of ${fmt(prsiBase)})`, val: fmt(prsiEmployer) });
 
   // ── 5. Pension auto-enrolment (My Future Fund) ──
   let aeEmployee = 0, aeEmployer = 0, aeState = 0;
@@ -1036,7 +1072,8 @@ function liveCalc() {
   const ae      = document.getElementById('s-ae').checked;
   const aePhase = parseInt(document.getElementById('s-ae-phase').value) || 1;
   const aeSalary = parseFloat(document.getElementById('s-ae-annual').value) || 0;
-  const bik     = document.getElementById('s-bik-toggle').checked ? (parseFloat(document.getElementById('s-bik').value) || 0) : 0;
+  const bik          = document.getElementById('s-bik-toggle').checked ? (parseFloat(document.getElementById('s-bik').value) || 0) : 0;
+  const bikTreatment = document.getElementById('s-bik-toggle').checked ? document.getElementById('s-bik-treatment').value : 'notional';
   const first   = document.getElementById('s-first').value || 'Employee';
   const last    = document.getElementById('s-last').value || '';
 
@@ -1044,7 +1081,7 @@ function liveCalc() {
     grossPay: gross, annualCredits: credits, annualCutoff: cutoff,
     frequency: freq, periodNumber: period, basis,
     prsiClass: prsi, uscRate: usc, pensionEmployee: pension,
-    autoEnrolled: ae, bikValue: bik, aePhase, annualSalary: aeSalary
+    autoEnrolled: ae, bikValue: bik, bikTreatment, aePhase, annualSalary: aeSalary
   });
 
   renderPayslip(result, first + ' ' + last, freq, period);
@@ -1185,8 +1222,26 @@ function toggleAe() {
 function toggleBik() {
   document.getElementById('bik-field').style.display =
     document.getElementById('s-bik-toggle').checked ? 'block' : 'none';
+  updateBikNote();
   liveCalc();
 }
+
+function updateBikNote() {
+  const notes = {
+    notional:  'Revenue not yet notified. BIK added to PAYE, USC, and PRSI bases this period.',
+    rpn:       'Revenue already notified. PAYE and USC collected via adjusted RPN. PRSI base only is increased here.',
+    prsi_only: 'This benefit is exempt from income tax (e.g. certain employer health contributions). PRSI base increased only.'
+  };
+  const sel = document.getElementById('s-bik-treatment');
+  const note = document.getElementById('bik-treatment-note');
+  if (sel && note) note.textContent = notes[sel.value] || '';
+}
+
+// Wire up treatment selector change to update note
+document.addEventListener('DOMContentLoaded', () => {
+  const sel = document.getElementById('s-bik-treatment');
+  if (sel) sel.addEventListener('change', updateBikNote);
+});
 
 // ══ UI — Pay run ══
 
