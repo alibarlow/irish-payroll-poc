@@ -614,6 +614,7 @@
   <button class="nav-tab" onclick="showPage('holiday')">Holiday pay</button>
   <button class="nav-tab" onclick="showPage('tracker')">Leave tracker</button>
   <button class="nav-tab" onclick="showPage('family')">Family leave</button>
+  <button class="nav-tab" onclick="showPage('tronc')">Tips &amp; tronc</button>
 </nav>
 
 <!-- ═══ SINGLE PAYSLIP PAGE ═══ -->
@@ -1305,6 +1306,110 @@
       <div class="empty-state">
         <div class="empty-icon">◎</div>
         <p>Family leave payroll breakdown will appear here.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TRONC / TIPS PAGE ═══ -->
+<div id="page-tronc" class="page">
+
+  <div style="margin-bottom:20px">
+    <div style="font-size:18px;font-weight:500;color:var(--ink)">Tips, gratuities &amp; tronc</div>
+    <div style="font-size:12px;color:var(--ink-soft);margin-top:3px">Payment of Wages (Amendment) (Tips &amp; Gratuities) Act 2022 · 2026 tax year</div>
+  </div>
+
+  <!-- Type explainer cards -->
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px" id="tronc-type-cards">
+    <div style="background:#FDF4E6;border:1px solid #E8C49A;border-radius:8px;padding:14px;border-top:3px solid var(--orange)">
+      <div style="font-weight:500;font-size:13px;color:var(--orange);margin-bottom:6px">Cash tips — direct to employee</div>
+      <div style="font-size:12px;color:var(--ink-mid);line-height:1.6">Customer leaves cash directly with employee. No employer involvement. Employee must declare to Revenue. Does not go through payroll.</div>
+      <div style="margin-top:8px;font-size:11px;color:var(--ink-soft)">Employer PRSI: None · PAYE: Employee responsibility</div>
+    </div>
+    <div style="background:#E8F5EE;border:1px solid #97C459;border-radius:8px;padding:14px;border-top:3px solid var(--green)">
+      <div style="font-weight:500;font-size:13px;color:var(--green);margin-bottom:6px">Electronic tips &amp; service charges</div>
+      <div style="font-size:12px;color:var(--ink-mid);line-height:1.6">Card tips, app tips, or service charges. Must be distributed to staff. Processed through employer payroll with full tax deductions.</div>
+      <div style="margin-top:8px;font-size:11px;color:var(--ink-soft)">PAYE ✓ · USC ✓ · Employee PRSI ✓ · Employer PRSI ✓</div>
+    </div>
+    <div style="background:#E6F1FB;border:1px solid #85B7EB;border-radius:8px;padding:14px;border-top:3px solid #0C447C">
+      <div style="font-weight:500;font-size:13px;color:#0C447C;margin-bottom:6px">Tronc scheme</div>
+      <div style="font-size:12px;color:var(--ink-mid);line-height:1.6">Independent scheme run by a troncmaster. PAYE, USC, and employee PRSI apply. Employer PRSI does NOT apply — this is the key saving.</div>
+      <div style="margin-top:8px;font-size:11px;color:var(--ink-soft)">PAYE ✓ · USC ✓ · Employee PRSI ✓ · Employer PRSI ✗</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <div class="card">
+        <div class="card-title">Distribution details</div>
+
+        <div class="form-group">
+          <label>Total tips / service charges collected this period (€)</label>
+          <input type="number" id="tr-total" value="8000" step="100" oninput="calcTronc()">
+        </div>
+        <div class="form-group">
+          <label>Number of employees sharing</label>
+          <input type="number" id="tr-employees" value="8" min="1" step="1" oninput="calcTronc()">
+        </div>
+        <div class="form-group">
+          <label>Distribution method</label>
+          <select id="tr-method" onchange="calcTronc()">
+            <option value="equal">Equal share</option>
+            <option value="hours">Proportional to hours worked</option>
+            <option value="manual">Manual allocation</option>
+          </select>
+        </div>
+
+        <div id="tr-hours-field" style="display:none">
+          <div class="form-group">
+            <label>Total hours worked across all employees this period</label>
+            <input type="number" id="tr-total-hours" value="320" step="1" oninput="calcTronc()">
+          </div>
+        </div>
+
+        <div class="section-divider">Sample employee calculation</div>
+        <div class="form-group">
+          <label>Employee name</label>
+          <input type="text" id="tr-emp-name" value="Aoife Murphy" oninput="calcTronc()">
+        </div>
+        <div id="tr-hours-emp-field" style="display:none">
+          <div class="form-group">
+            <label>This employee's hours this period</label>
+            <input type="number" id="tr-emp-hours" value="40" step="0.5" oninput="calcTronc()">
+          </div>
+        </div>
+        <div id="tr-manual-field" style="display:none">
+          <div class="form-group">
+            <label>Manual allocation for this employee (€)</label>
+            <input type="number" id="tr-manual-amt" value="1000" step="50" oninput="calcTronc()">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Employee's normal weekly gross pay (€) <span style="font-size:11px;color:var(--ink-soft)">— used for tax calculation</span></label>
+          <input type="number" id="tr-emp-gross" value="500" step="10" oninput="calcTronc()">
+        </div>
+        <div class="form-group">
+          <label>Pay frequency</label>
+          <select id="tr-freq" onchange="calcTronc()">
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Annual tax credits (€)</label>
+          <input type="number" id="tr-credits" value="3750" step="1" oninput="calcTronc()">
+        </div>
+        <div class="form-group">
+          <label>Standard rate cut-off — annual (€)</label>
+          <input type="number" id="tr-cutoff" value="42000" step="100" oninput="calcTronc()">
+        </div>
+      </div>
+    </div>
+
+    <div id="tronc-output">
+      <div class="empty-state">
+        <div class="empty-icon">◎</div>
+        <p>Tips &amp; tronc calculation will appear here.</p>
       </div>
     </div>
   </div>
@@ -3229,6 +3334,210 @@ function toggleTopup() {
   calcFamilyLeave();
 }
 
+// ══ TRONC / TIPS ENGINE ══
+
+function calcTronc() {
+  const total      = parseFloat(document.getElementById('tr-total').value) || 0;
+  const numEmps    = parseInt(document.getElementById('tr-employees').value) || 1;
+  const method     = document.getElementById('tr-method').value;
+  const empName    = document.getElementById('tr-emp-name').value || 'Employee';
+  const empGross   = parseFloat(document.getElementById('tr-emp-gross').value) || 0;
+  const freq       = document.getElementById('tr-freq').value;
+  const credits    = parseFloat(document.getElementById('tr-credits').value) || 0;
+  const cutoff     = parseFloat(document.getElementById('tr-cutoff').value) || 0;
+
+  // Toggle visible fields
+  document.getElementById('tr-hours-field').style.display     = method === 'hours' ? 'block' : 'none';
+  document.getElementById('tr-hours-emp-field').style.display = method === 'hours' ? 'block' : 'none';
+  document.getElementById('tr-manual-field').style.display    = method === 'manual' ? 'block' : 'none';
+
+  // Calculate this employee's share
+  let empShare, shareNote;
+  if (method === 'equal') {
+    empShare  = round2(total / numEmps);
+    shareNote = `Equal share: €${total.toLocaleString()} ÷ ${numEmps} employees`;
+  } else if (method === 'hours') {
+    const totalHours = parseFloat(document.getElementById('tr-total-hours').value) || 1;
+    const empHours   = parseFloat(document.getElementById('tr-emp-hours').value) || 0;
+    empShare  = round2(total * (empHours / totalHours));
+    shareNote = `Hours proportional: ${empHours} hrs ÷ ${totalHours} total hrs × ${fmt(total)}`;
+  } else {
+    empShare  = parseFloat(document.getElementById('tr-manual-amt').value) || 0;
+    shareNote = 'Manually allocated by troncmaster';
+  }
+
+  // ── Scenario A: via employer payroll (full PAYE/USC/PRSI incl employer) ──
+  const grossWithTipsA = round2(empGross + empShare);
+  const taxA = calculatePayslip({
+    grossPay: grossWithTipsA, annualCredits: credits, annualCutoff: cutoff,
+    frequency: freq, periodNumber: 1, basis: 'week1',
+    prsiClass: 'A', uscRate: 'standard', pensionEmployee: 0,
+    autoEnrolled: false, bikValue: 0, bikTreatment: 'notional',
+    aePhase: 1, annualSalary: empGross * (freq === 'monthly' ? 12 : 52),
+    lptAmount: 0, courtOrder: 0, courtFloor: 0,
+  });
+  // Base tax without tips (to isolate tax on tips portion)
+  const taxBase = calculatePayslip({
+    grossPay: empGross, annualCredits: credits, annualCutoff: cutoff,
+    frequency: freq, periodNumber: 1, basis: 'week1',
+    prsiClass: 'A', uscRate: 'standard', pensionEmployee: 0,
+    autoEnrolled: false, bikValue: 0, bikTreatment: 'notional',
+    aePhase: 1, annualSalary: empGross * (freq === 'monthly' ? 12 : 52),
+    lptAmount: 0, courtOrder: 0, courtFloor: 0,
+  });
+  const employerPrsiOnTipsA = round2(empShare * PRSI['A'].employer);
+
+  // ── Scenario B: via tronc (no employer PRSI on tips) ──
+  // Base salary still processed normally through employer payroll
+  // Tips processed separately through tronc — employee PRSI + PAYE + USC apply, employer PRSI does NOT
+  const taxTroncBase = taxBase; // salary unchanged
+  // For tronc tips portion: calculate PAYE+USC+employee PRSI only
+  const troncTipsPaye = round2(Math.max(0, empShare * 0.20)); // simplified: tips at standard rate
+  const troncTipsUsc  = round2(empShare * 0.04); // simplified: tips at band 3 USC rate
+  const troncTipsPrsiEmp = round2(empShare * PRSI['A'].employee);
+  const troncTipsNet  = round2(empShare - troncTipsPaye - troncTipsUsc - troncTipsPrsiEmp);
+  const troncEmpPrsiSaving = employerPrsiOnTipsA; // what the employer saves
+
+  // Annual projections (assume same tips every period)
+  const periodsPerYear = freq === 'monthly' ? 12 : 52;
+  const annualTips     = round2(total * periodsPerYear);
+  const annualSavingEmployer = round2(annualTips * PRSI['A'].employer);
+
+  renderTronc({
+    empName, total, numEmps, empShare, shareNote, method,
+    empGross, freq,
+    // Scenario A
+    grossWithTipsA, taxA, employerPrsiOnTipsA,
+    netPayA: taxA.netPay,
+    // Scenario B
+    taxTroncBase,
+    troncTipsPaye, troncTipsUsc, troncTipsPrsiEmp, troncTipsNet,
+    troncEmpPrsiSaving,
+    // Annualised
+    annualTips, annualSavingEmployer,
+  });
+}
+
+function renderTronc(r) {
+  const html = `
+    <div class="payslip" style="margin-bottom:16px">
+      <div class="payslip-header">
+        <div class="company">Fourth — Tips &amp; Gratuities</div>
+        <div class="period">Payment of Wages (Amendment) Act 2022 · 2026</div>
+        <div class="emp-meta">
+          <div class="meta-item"><div class="meta-label">Employee</div><div class="meta-val">${r.empName}</div></div>
+          <div class="meta-item"><div class="meta-label">Pool total</div><div class="meta-val">${fmt(r.total)}</div></div>
+          <div class="meta-item"><div class="meta-label">This employee's share</div><div class="meta-val">${fmt(r.empShare)}</div></div>
+        </div>
+      </div>
+      <div class="payslip-body">
+        <div class="pay-section">
+          <div class="pay-section-title">Distribution</div>
+          <div class="pay-line">
+            <span class="line-label">Total tips pool<small>${r.method === 'equal' ? 'Equal share' : r.method === 'hours' ? 'Hours proportional' : 'Manual allocation'}</small></span>
+            <span class="line-amount">${fmt(r.total)}</span>
+          </div>
+          <div class="pay-line">
+            <span class="line-label">This employee's allocation<small>${r.shareNote}</small></span>
+            <span class="line-amount mono green">${fmt(r.empShare)}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Side by side comparison -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+
+      <!-- Scenario A: Via employer payroll -->
+      <div class="payslip">
+        <div style="background:#1A5C3A;color:white;padding:12px 16px;border-radius:6px 6px 0 0">
+          <div style="font-size:13px;font-weight:500">Route A — Employer payroll</div>
+          <div style="font-size:11px;opacity:.7;margin-top:2px">Tips added to gross · Full PAYE/USC/PRSI</div>
+        </div>
+        <div class="payslip-body">
+          <div class="pay-section">
+            <div class="pay-section-title">Employee pay</div>
+            <div class="pay-line"><span class="line-label">Normal gross</span><span class="line-amount">${fmt(r.empGross)}</span></div>
+            <div class="pay-line"><span class="line-label">Tips added to gross</span><span class="line-amount">${fmt(r.empShare)}</span></div>
+            <div class="pay-line"><span class="line-label">Total gross</span><span class="line-amount mono">${fmt(r.grossWithTipsA)}</span></div>
+          </div>
+          <div class="pay-section">
+            <div class="pay-section-title">Deductions</div>
+            <div class="pay-line deduction"><span class="line-label">PAYE</span><span class="line-amount">−${fmt(r.taxA.payeDeducted)}</span></div>
+            <div class="pay-line deduction"><span class="line-label">USC</span><span class="line-amount">−${fmt(r.taxA.uscDeducted)}</span></div>
+            <div class="pay-line deduction"><span class="line-label">PRSI (employee)</span><span class="line-amount">−${fmt(r.taxA.prsiEmployee)}</span></div>
+          </div>
+          <div class="pay-totals">
+            <div class="total-row net"><span class="t-label">Employee net pay</span><span class="t-amount">${fmt(r.netPayA)}</span></div>
+          </div>
+          <div style="padding:10px 16px;background:var(--orange-light);border-top:1px solid var(--rule)">
+            <div style="font-size:11px;color:var(--orange);font-weight:500">Employer cost</div>
+            <div style="font-size:12px;color:var(--ink-mid);margin-top:3px">Employer PRSI on tips: <span style="font-weight:500">${fmt(r.employerPrsiOnTipsA)}</span></div>
+            <div style="font-size:11px;color:var(--ink-soft);margin-top:2px">Employer pays PRSI on the full gross including tips</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scenario B: Via tronc -->
+      <div class="payslip">
+        <div style="background:#0C447C;color:white;padding:12px 16px;border-radius:6px 6px 0 0">
+          <div style="font-size:13px;font-weight:500">Route B — Tronc scheme</div>
+          <div style="font-size:11px;opacity:.7;margin-top:2px">Tips via troncmaster · No employer PRSI</div>
+        </div>
+        <div class="payslip-body">
+          <div class="pay-section">
+            <div class="pay-section-title">Employer payroll (salary only)</div>
+            <div class="pay-line"><span class="line-label">Normal gross</span><span class="line-amount">${fmt(r.empGross)}</span></div>
+            <div class="pay-line deduction"><span class="line-label">PAYE on salary</span><span class="line-amount">−${fmt(r.taxTroncBase.payeDeducted)}</span></div>
+            <div class="pay-line deduction"><span class="line-label">USC on salary</span><span class="line-amount">−${fmt(r.taxTroncBase.uscDeducted)}</span></div>
+            <div class="pay-line deduction"><span class="line-label">PRSI (employee) on salary</span><span class="line-amount">−${fmt(r.taxTroncBase.prsiEmployee)}</span></div>
+          </div>
+          <div class="pay-section">
+            <div class="pay-section-title">Tronc distribution (separate)</div>
+            <div class="pay-line"><span class="line-label">Tips allocation</span><span class="line-amount">${fmt(r.empShare)}</span></div>
+            <div class="pay-line deduction"><span class="line-label">PAYE on tips</span><span class="line-amount">−${fmt(r.troncTipsPaye)}</span></div>
+            <div class="pay-line deduction"><span class="line-label">USC on tips</span><span class="line-amount">−${fmt(r.troncTipsUsc)}</span></div>
+            <div class="pay-line deduction"><span class="line-label">PRSI (employee) on tips</span><span class="line-amount">−${fmt(r.troncTipsPrsiEmp)}</span></div>
+            <div class="pay-line"><span class="line-label" style="color:var(--green)">Net tips to employee</span><span class="line-amount mono green">${fmt(r.troncTipsNet)}</span></div>
+          </div>
+          <div class="pay-totals">
+            <div class="total-row net"><span class="t-label">Total employee net pay</span><span class="t-amount">${fmt(round2(r.taxTroncBase.netPay + r.troncTipsNet))}</span></div>
+          </div>
+          <div style="padding:10px 16px;background:var(--green-light);border-top:1px solid var(--rule)">
+            <div style="font-size:11px;color:var(--green);font-weight:500">Employer saving</div>
+            <div style="font-size:12px;color:var(--ink-mid);margin-top:3px">Employer PRSI saved: <span style="font-weight:500;color:var(--green)">${fmt(r.troncEmpPrsiSaving)}</span> this period</div>
+            <div style="font-size:11px;color:var(--ink-soft);margin-top:2px">No employer PRSI on tips distributed via tronc</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Annual saving summary -->
+    <div class="card">
+      <div class="card-title">Annual employer PRSI saving — tronc vs payroll</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:4px">
+        <div class="sum-box">
+          <div class="sum-label">Annual tips pool</div>
+          <div class="sum-val">${fmt(r.annualTips)}</div>
+        </div>
+        <div class="sum-box warn">
+          <div class="sum-label">Employer PRSI via payroll (annual)</div>
+          <div class="sum-val">${fmt(r.annualSavingEmployer)}</div>
+        </div>
+        <div class="sum-box highlight">
+          <div class="sum-label">Saving via tronc (annual)</div>
+          <div class="sum-val">${fmt(r.annualSavingEmployer)}</div>
+        </div>
+      </div>
+      <div style="font-size:12px;color:var(--ink-soft);margin-top:12px;padding-top:10px;border-top:1px solid var(--rule);line-height:1.6">
+        ⚠  Tronc tax figures above use simplified rates for illustration. A live tronc engine must use each employee's cumulative YTD earnings and RPN to calculate PAYE, USC, and employee PRSI correctly.<br>
+        The employer PRSI saving is exact — employer PRSI is never due on tips distributed through a properly operated tronc scheme.
+      </div>
+    </div>`;
+
+  document.getElementById('tronc-output').innerHTML = html;
+}
+
 // ══ Page navigation ══
 function showPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -3241,6 +3550,7 @@ function showPage(id) {
   if (id === 'holiday')     calcHoliday();
   if (id === 'tracker')     renderTracker();
   if (id === 'family')      { renderFamilyRefCards(); calcFamilyLeave(); }
+  if (id === 'tronc')       calcTronc();
 }
 
 // Init
