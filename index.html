@@ -612,6 +612,7 @@
   <button class="nav-tab" onclick="showPage('ssp')">Statutory sick pay</button>
   <button class="nav-tab" onclick="showPage('termination')">Termination</button>
   <button class="nav-tab" onclick="showPage('holiday')">Holiday pay</button>
+  <button class="nav-tab" onclick="showPage('tracker')">Leave tracker</button>
 </nav>
 
 <!-- ═══ SINGLE PAYSLIP PAGE ═══ -->
@@ -1076,36 +1077,33 @@
           </div>
         </div>
 
-        <div class="section-divider">Entitlement calculation</div>
+        <div class="section-divider">Entitlement — all three methods</div>
+        <div style="font-size:11px;color:var(--ink-soft);margin-bottom:12px;padding:6px 8px;background:var(--green-pale);border-left:3px solid var(--green-mid);border-radius:0 4px 4px 0;line-height:1.6">
+          The law requires the method giving the greatest entitlement to apply. Enter the data for each method that applies — the engine will calculate all three and highlight the winner.
+        </div>
 
         <div class="form-group">
-          <label>Calculation basis</label>
-          <select id="h-method" onchange="toggleHolidayMethod()">
-            <option value="annual">Annual hours — worked 1,365+ hours (full year)</option>
-            <option value="monthly">Monthly accrual — worked 117+ hours per month</option>
-            <option value="8pct">8% rule — variable / irregular hours</option>
-          </select>
+          <label>Days worked per week <span style="font-size:11px;color:var(--ink-soft)">— used to convert weeks to days for all methods</span></label>
+          <input type="number" id="h-days-pw" value="5" min="1" max="7" step="1" oninput="calcHoliday()">
         </div>
 
-        <div id="h-annual-fields">
-          <div class="form-group">
-            <label>Total hours worked this leave year</label>
-            <input type="number" id="h-annual-hours" value="1500" step="1" oninput="calcHoliday()">
-          </div>
+        <div class="form-group" style="background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:10px 12px;margin-bottom:10px">
+          <div style="font-family:var(--font-mono,monospace);font-size:10px;letter-spacing:.08em;color:var(--ink-soft);text-transform:uppercase;margin-bottom:8px">Method 1 — Annual hours</div>
+          <label style="font-size:12px">Total hours worked this leave year</label>
+          <input type="number" id="h-annual-hours" value="1300" step="1" oninput="calcHoliday()" style="margin-top:4px">
         </div>
 
-        <div id="h-monthly-fields" style="display:none">
-          <div class="form-group">
-            <label>Complete qualifying months worked (117+ hours each)</label>
-            <input type="number" id="h-months" value="12" min="1" max="12" step="1" oninput="calcHoliday()">
-          </div>
+        <div class="form-group" style="background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:10px 12px;margin-bottom:10px">
+          <div style="font-family:var(--font-mono,monospace);font-size:10px;letter-spacing:.08em;color:var(--ink-soft);text-transform:uppercase;margin-bottom:8px">Method 2 — Monthly accrual</div>
+          <label style="font-size:12px">Complete qualifying months (117+ hours each)</label>
+          <input type="number" id="h-months" value="10" min="0" max="12" step="1" oninput="calcHoliday()" style="margin-top:4px">
         </div>
 
-        <div id="h-8pct-fields" style="display:none">
-          <div class="form-group">
-            <label>Total hours worked this leave year</label>
-            <input type="number" id="h-8pct-hours" value="680" step="1" oninput="calcHoliday()">
-          </div>
+        <div class="form-group" style="background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:10px 12px;margin-bottom:10px">
+          <div style="font-family:var(--font-mono,monospace);font-size:10px;letter-spacing:.08em;color:var(--ink-soft);text-transform:uppercase;margin-bottom:8px">Method 3 — 8% rule</div>
+          <label style="font-size:12px">Total hours worked this leave year <span style="font-size:11px;color:var(--ink-soft)">(accrues in real time — current year only)</span></label>
+          <input type="number" id="h-8pct-hours" value="1300" step="1" oninput="calcHoliday()" style="margin-top:4px">
+          <div style="font-size:11px;color:var(--ink-soft);margin-top:4px">New starters accrue from hour one — no qualifying period.</div>
         </div>
 
         <div class="section-divider">Leave being taken</div>
@@ -1154,6 +1152,52 @@
       </div>
     </div>
   </div>
+</div>
+
+<!-- ═══ LEAVE TRACKER PAGE ═══ -->
+<div id="page-tracker" class="page">
+
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+    <div>
+      <div style="font-size:18px;font-weight:500;color:var(--ink)">Team leave balance tracker</div>
+      <div style="font-size:12px;color:var(--ink-soft);margin-top:3px">Accrued vs taken · End-of-year warning · Leave year 2026</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <select id="tr-leave-year" onchange="renderTracker()" style="padding:7px 10px;border:1px solid var(--rule);border-radius:4px;font-size:13px;background:var(--white)">
+        <option value="calendar">Calendar year (Jan–Dec)</option>
+        <option value="statutory">Statutory year (Apr–Mar)</option>
+      </select>
+      <button onclick="addTrackerEmployee()" class="btn-add">+ Add employee</button>
+      <button onclick="renderTracker()" style="background:var(--green);color:white;border:none;padding:7px 16px;border-radius:4px;font-size:13px;cursor:pointer">Recalculate ▶</button>
+    </div>
+  </div>
+
+  <div class="notice" style="margin-bottom:16px">
+    Enter each employee's hours worked to date, qualifying months, and leave taken. The tracker calculates all three methods, applies the best, and flags any end-of-year risk.
+  </div>
+
+  <!-- Employee input table -->
+  <div style="overflow-x:auto">
+    <table class="emp-table" id="tracker-table">
+      <thead>
+        <tr>
+          <th>Employee</th>
+          <th>Pattern</th>
+          <th>Days/wk</th>
+          <th>Hrs worked YTD</th>
+          <th>Qualifying months</th>
+          <th>Days taken</th>
+          <th>Current month</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tracker-tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- Results -->
+  <div id="tracker-results" style="margin-top:24px"></div>
+
 </div>
 
 <!-- Modal for pay run detail -->
@@ -2230,109 +2274,117 @@ const PUBLIC_HOLIDAYS_2026 = [
 const MAX_LEAVE_WEEKS = 4; // statutory maximum
 
 function calcHoliday() {
-  const first    = document.getElementById('h-first').value || 'Employee';
-  const last     = document.getElementById('h-last').value || '';
-  const pattern  = document.getElementById('h-pattern').value;
-  const method   = document.getElementById('h-method').value;
-  const leaveDays = parseFloat(document.getElementById('h-leave-days').value) || 0;
-  const takenDays = parseFloat(document.getElementById('h-taken').value) || 0;
+  const first       = document.getElementById('h-first').value || 'Employee';
+  const last        = document.getElementById('h-last').value || '';
+  const pattern     = document.getElementById('h-pattern').value;
+  const daysPerWeek = parseFloat(document.getElementById('h-days-pw').value) || 5;
+  const leaveDays   = parseFloat(document.getElementById('h-leave-days').value) || 0;
+  const takenDays   = parseFloat(document.getElementById('h-taken').value) || 0;
   const phQualifies = document.getElementById('h-ph-qualifies').checked;
-  const phCount  = parseInt(document.getElementById('h-ph-count').value) || 0;
+  const phCount     = parseInt(document.getElementById('h-ph-count').value) || 0;
   const phTreatment = document.getElementById('h-ph-treatment').value;
 
-  // ── 1. Daily pay rate ──
-  let weeklyRate, dailyRate, rateNote, weeklyRateNote;
-
+  // ── 1. Pay rate ──
+  let weeklyRate, dailyRate, rateNote;
   if (pattern === 'fixed') {
     const weeklyPay = parseFloat(document.getElementById('h-weekly-pay').value) || 0;
-    const daysPW    = parseFloat(document.getElementById('h-days-pw').value) || 5;
     const premium   = parseFloat(document.getElementById('h-premium').value) || 0;
-    weeklyRate      = round2(weeklyPay + premium);
-    dailyRate       = round2(weeklyRate / daysPW);
-    rateNote        = `${fmt(weeklyPay)} base${premium > 0 ? ` + ${fmt(premium)} premium` : ''} = ${fmt(weeklyRate)}/week ÷ ${daysPW} days`;
-    weeklyRateNote  = `Normal weekly rate: ${fmt(weeklyRate)}`;
+    weeklyRate = round2(weeklyPay + premium);
+    dailyRate  = round2(weeklyRate / daysPerWeek);
+    rateNote   = `${fmt(weeklyPay)} base${premium > 0 ? ` + ${fmt(premium)} premium` : ''} = ${fmt(weeklyRate)}/week ÷ ${daysPerWeek} days`;
   } else {
     const pay13w   = parseFloat(document.getElementById('h-13w-pay').value) || 0;
     const weeks13w = parseFloat(document.getElementById('h-13w-weeks').value) || 1;
-    weeklyRate     = round2(pay13w / weeks13w);
-    dailyRate      = round2(weeklyRate / 5); // use 5 as standard divisor for daily from weekly
-    rateNote       = `13-week earnings ${fmt(pay13w)} ÷ ${weeks13w} qualifying weeks (zero-pay weeks excluded)`;
-    weeklyRateNote = `Average weekly rate: ${fmt(weeklyRate)}`;
-  }
-
-  // ── 2. Entitlement calculation ──
-  let entitlementDays, entitlementNote, entitlementMethod, daysPerWeek;
-
-  if (pattern === 'fixed') {
-    daysPerWeek = parseFloat(document.getElementById('h-days-pw').value) || 5;
-  } else {
-    daysPerWeek = 5; // use 5 for 8% rule conversion
+    weeklyRate = round2(pay13w / weeks13w);
+    dailyRate  = round2(weeklyRate / 5);
+    rateNote   = `13-week earnings ${fmt(pay13w)} ÷ ${weeks13w} qualifying weeks (zero-pay weeks excluded)`;
   }
 
   const maxDays = round2(MAX_LEAVE_WEEKS * daysPerWeek);
+  const hoursPerDay = 8; // standard assumption for hour→day conversion
 
-  if (method === 'annual') {
-    const hoursWorked = parseFloat(document.getElementById('h-annual-hours').value) || 0;
-    if (hoursWorked >= 1365) {
-      entitlementDays = maxDays;
-      entitlementNote = `${hoursWorked} hours worked ≥ 1,365 threshold → full 4 working weeks`;
-    } else {
-      // Pro-rata: calculate partial entitlement based on hours
-      entitlementDays = round2(Math.min((hoursWorked / 1365) * maxDays, maxDays));
-      entitlementNote = `${hoursWorked} hours worked < 1,365 → pro-rata: ${hoursWorked}/1,365 × ${maxDays} days`;
-    }
-    entitlementMethod = 'Method 1 — Annual hours';
-  } else if (method === 'monthly') {
-    const months = parseInt(document.getElementById('h-months').value) || 0;
-    const accrualPerMonth = round2(daysPerWeek / 3);
-    entitlementDays = round2(Math.min(months * accrualPerMonth, maxDays));
-    entitlementNote = `${months} qualifying months × ${accrualPerMonth} days/month (⅓ of ${daysPerWeek}-day week)`;
-    entitlementMethod = 'Method 2 — Monthly accrual (117+ hours/month)';
+  // ── 2. Calculate all three methods ──
+
+  // Method 1 — annual hours
+  const annualHours = parseFloat(document.getElementById('h-annual-hours').value) || 0;
+  let m1Days, m1Note, m1Applies;
+  if (annualHours >= 1365) {
+    m1Days   = maxDays;
+    m1Note   = `${annualHours} hrs ≥ 1,365 → full 4 weeks = ${maxDays} days`;
+    m1Applies = true;
+  } else if (annualHours > 0) {
+    m1Days   = round2(Math.min((annualHours / 1365) * maxDays, maxDays));
+    m1Note   = `${annualHours} hrs < 1,365 → pro-rata ${annualHours}/1,365 × ${maxDays} = ${m1Days} days`;
+    m1Applies = true;
   } else {
-    // 8% rule
-    const hoursWorked = parseFloat(document.getElementById('h-8pct-hours').value) || 0;
-    const leaveHours  = round2(hoursWorked * 0.08);
-    const maxHours    = round2(maxDays * (hoursWorked / (hoursWorked || 1))); // cap check
-    // Cap at 4 working weeks equivalent in hours
-    // Assume average 8hr day for conversion: cap = maxDays * 8
-    const capHours    = maxDays * 8;
-    const cappedHours = Math.min(leaveHours, capHours);
-    const cappedDays  = round2(cappedHours / 8);
-    entitlementDays   = cappedDays;
-    entitlementNote   = `${hoursWorked} hours × 8% = ${leaveHours} leave hours${leaveHours > capHours ? ` (capped at ${capHours} hours / ${maxDays} days)` : ''} ÷ 8 hrs/day = ${cappedDays} days`;
-    entitlementMethod = 'Method 3 — 8% rule (variable/irregular hours)';
+    m1Days   = 0;
+    m1Note   = 'No hours entered';
+    m1Applies = false;
   }
 
-  // ── 3. Remaining entitlement ──
-  const remainingDays  = round2(Math.max(0, entitlementDays - takenDays));
-  const requestedDays  = Math.min(leaveDays, remainingDays);
-  const excessDays     = round2(leaveDays - requestedDays);
+  // Method 2 — monthly accrual
+  const months = parseInt(document.getElementById('h-months').value) || 0;
+  const accrualPerMonth = round2(daysPerWeek / 3);
+  const m2Days   = round2(Math.min(months * accrualPerMonth, maxDays));
+  const m2Note   = months > 0
+    ? `${months} qualifying months × ${accrualPerMonth} days (⅓ of ${daysPerWeek}-day week) = ${m2Days} days`
+    : 'No qualifying months entered';
+  const m2Applies = months > 0;
 
-  // ── 4. Holiday pay amount ──
-  const holidayPay     = round2(requestedDays * dailyRate);
+  // Method 3 — 8% rule (current year hours, real-time accrual)
+  const hours8pct    = parseFloat(document.getElementById('h-8pct-hours').value) || 0;
+  const leaveHours8  = round2(hours8pct * 0.08);
+  const capHours     = maxDays * hoursPerDay;
+  const cappedHours  = Math.min(leaveHours8, capHours);
+  const m3Days       = round2(cappedHours / hoursPerDay);
+  const m3Note       = hours8pct > 0
+    ? `${hours8pct} hrs × 8% = ${leaveHours8} leave hrs${leaveHours8 > capHours ? ` → capped at ${capHours} hrs` : ''} ÷ ${hoursPerDay} = ${m3Days} days`
+    : 'No hours entered';
+  const m3Applies = hours8pct > 0;
+
+  // ── 3. Pick the winner ──
+  const results = [
+    { id: 'M1', label: 'Method 1 — Annual hours',     days: m1Days, note: m1Note, applies: m1Applies },
+    { id: 'M2', label: 'Method 2 — Monthly accrual',  days: m2Days, note: m2Note, applies: m2Applies },
+    { id: 'M3', label: 'Method 3 — 8% rule',          days: m3Days, note: m3Note, applies: m3Applies },
+  ];
+
+  const applicable = results.filter(r => r.applies);
+  const winnerDays  = applicable.length > 0 ? Math.max(...applicable.map(r => r.days)) : 0;
+  // Mark all methods that tie for the highest (could be multiple)
+  results.forEach(r => { r.isWinner = r.applies && r.days === winnerDays; });
+
+  const entitlementDays = winnerDays;
+  const winnerMethod    = results.find(r => r.isWinner) || results[2];
+
+  // ── 4. Remaining and pay ──
+  const remainingDays = round2(Math.max(0, entitlementDays - takenDays));
+  const requestedDays = Math.min(leaveDays, remainingDays);
+  const excessDays    = round2(leaveDays - requestedDays);
+  const holidayPay    = round2(requestedDays * dailyRate);
 
   // ── 5. Public holiday pay ──
   let phPay = 0, phPayNote = '';
   if (phQualifies && phCount > 0) {
-    const phDailyRate = round2(weeklyRate / 5); // 1/5 of weekly rate
+    const phDailyRate = round2(weeklyRate / 5);
     if (phTreatment === 'extra-pay') {
       phPay     = round2(phDailyRate * phCount);
-      phPayNote = `${phCount} × ${fmt(phDailyRate)} (1/5 of weekly rate ${fmt(weeklyRate)}) additional pay`;
+      phPayNote = `${phCount} × ${fmt(phDailyRate)} additional pay (1/5 weekly rate)`;
     } else if (phTreatment === 'dayoff' || phTreatment === 'lieu') {
       phPay     = round2(phDailyRate * phCount);
-      phPayNote = `${phCount} × ${fmt(phDailyRate)} paid day${phCount > 1 ? 's' : ''} off (1/5 of weekly rate)`;
+      phPayNote = `${phCount} × ${fmt(phDailyRate)} paid day${phCount > 1 ? 's' : ''} off`;
     } else {
       phPay     = 0;
-      phPayNote = `${phCount} extra day${phCount > 1 ? 's' : ''} added to annual leave entitlement — no additional cash payment`;
+      phPayNote = `${phCount} extra day${phCount > 1 ? 's' : ''} added to annual leave — no cash payment`;
     }
   }
 
   const totalHolidayPayment = round2(holidayPay + phPay);
 
   renderHoliday({
-    name: first + ' ' + last, pattern, method,
-    weeklyRate, dailyRate, rateNote, weeklyRateNote,
-    entitlementDays, entitlementNote, entitlementMethod, maxDays,
+    name: first + ' ' + last, pattern, daysPerWeek,
+    weeklyRate, dailyRate, rateNote,
+    results, entitlementDays, winnerMethod, maxDays,
     takenDays, remainingDays, leaveDays: requestedDays, excessDays,
     holidayPay, phQualifies, phCount, phTreatment, phPay, phPayNote,
     totalHolidayPayment
@@ -2341,10 +2393,10 @@ function calcHoliday() {
 
 function renderHoliday(r) {
   const phTreatmentLabels = {
-    'dayoff':    'Paid day off on the day',
-    'extra-leave': 'Extra day added to annual leave',
-    'extra-pay': 'Additional day\'s pay (worked the holiday)',
-    'lieu':      'Paid day off within one month'
+    'dayoff':       'Paid day off on the day',
+    'extra-leave':  'Extra day added to annual leave',
+    'extra-pay':    'Additional day\'s pay (worked the holiday)',
+    'lieu':         'Paid day off within one month'
   };
 
   const excessHtml = r.excessDays > 0
@@ -2352,37 +2404,53 @@ function renderHoliday(r) {
         ⚠  ${r.excessDays} day${r.excessDays !== 1 ? 's' : ''} requested exceed the remaining entitlement of ${r.remainingDays} days. Only ${r.leaveDays} days are payable.
        </div>` : '';
 
+  // Build method comparison rows
+  const methodRows = r.results.map(m => {
+    const winStyle  = m.isWinner
+      ? `background:var(--green-light);border-left:3px solid var(--green-mid);`
+      : m.applies ? '' : `opacity:0.45;`;
+    const badge = m.isWinner
+      ? `<span style="font-size:10px;background:var(--green);color:white;border-radius:3px;padding:1px 6px;margin-left:6px;font-family:var(--font-mono,monospace)">APPLIED</span>`
+      : !m.applies
+      ? `<span style="font-size:10px;background:var(--rule);color:var(--ink-soft);border-radius:3px;padding:1px 6px;margin-left:6px;font-family:var(--font-mono,monospace)">N/A</span>`
+      : '';
+    return `<div class="pay-line" style="${winStyle}padding:9px 24px">
+      <span class="line-label">${m.label}${badge}<small>${m.note}</small></span>
+      <span class="line-amount mono${m.isWinner ? ' green' : ''}">${m.applies ? m.days + ' days' : '—'}</span>
+    </div>`;
+  }).join('');
+
   const html = `
     <div class="payslip">
       <div class="payslip-header">
         <div class="company">Fourth — Holiday Pay</div>
         <div class="period">Organisation of Working Time Act 1997 · Leave year 2026</div>
         <div class="emp-meta">
-          <div class="meta-item">
-            <div class="meta-label">Employee</div>
-            <div class="meta-val">${r.name}</div>
-          </div>
-          <div class="meta-item">
-            <div class="meta-label">Pattern</div>
-            <div class="meta-val">${r.pattern === 'fixed' ? 'Fixed hours' : 'Variable hours'}</div>
-          </div>
-          <div class="meta-item">
-            <div class="meta-label">Entitlement</div>
-            <div class="meta-val">${r.entitlementDays} days total</div>
-          </div>
+          <div class="meta-item"><div class="meta-label">Employee</div><div class="meta-val">${r.name}</div></div>
+          <div class="meta-item"><div class="meta-label">Pattern</div><div class="meta-val">${r.pattern === 'fixed' ? 'Fixed hours' : 'Variable hours'}</div></div>
+          <div class="meta-item"><div class="meta-label">Entitlement</div><div class="meta-val">${r.entitlementDays} days (best method)</div></div>
         </div>
       </div>
       <div class="payslip-body">
         ${excessHtml ? `${excessHtml}<div style="height:12px"></div>` : ''}
 
         <div class="pay-section">
-          <div class="pay-section-title">Entitlement — ${r.entitlementMethod}</div>
+          <div class="pay-section-title">Method comparison — highest entitlement applies</div>
+          ${methodRows}
+          <div class="pay-line" style="background:var(--green-pale)">
+            <span class="line-label" style="font-weight:500">Entitlement applied<small>${r.winnerMethod.label} gives the greatest result</small></span>
+            <span class="line-amount mono green">${r.entitlementDays} days</span>
+          </div>
+        </div>
+
+        <div class="pay-section">
+          <div class="pay-section-title">Entitlement position</div>
           <div class="pay-line">
-            <span class="line-label">Annual entitlement<small>${r.entitlementNote}</small></span>
+            <span class="line-label">Total entitlement this leave year</span>
             <span class="line-amount mono">${r.entitlementDays} days</span>
           </div>
           <div class="pay-line">
-            <span class="line-label">Days already taken this year</span>
+            <span class="line-label">Days already taken</span>
             <span class="line-amount">${r.takenDays} days</span>
           </div>
           <div class="pay-line">
@@ -2398,7 +2466,7 @@ function renderHoliday(r) {
             <span class="line-amount">${fmt(r.weeklyRate)}/week</span>
           </div>
           <div class="pay-line">
-            <span class="line-label">Daily rate<small>Weekly rate ÷ days per week</small></span>
+            <span class="line-label">Daily rate<small>Weekly rate ÷ ${r.daysPerWeek} days/week</small></span>
             <span class="line-amount">${fmt(r.dailyRate)}/day</span>
           </div>
         </div>
@@ -2435,7 +2503,7 @@ function renderHoliday(r) {
         <div class="pay-section">
           <div class="pay-section-title">Public holidays</div>
           <div class="pay-line">
-            <span class="line-label" style="color:var(--orange)">Employee does not qualify<small>Must have worked 40+ hours in the 5 weeks prior to the public holiday</small></span>
+            <span class="line-label" style="color:var(--orange)">Does not qualify<small>Must have worked 40+ hours in the 5 weeks prior to the public holiday</small></span>
             <span class="line-amount" style="color:var(--orange)">No entitlement</span>
           </div>
         </div>` : ''}
@@ -2456,7 +2524,7 @@ function renderHoliday(r) {
         </div>
 
         <div style="padding:10px 24px;font-size:11px;color:var(--ink-soft);line-height:1.6;border-top:1px solid var(--rule)">
-          Holiday pay must be paid before the leave is taken. It is subject to PAYE, USC, and PRSI in the normal way as part of the regular pay run. Overtime is excluded from holiday pay calculations but regular shift premiums and rostered allowances must be included.
+          Holiday pay must be paid before the leave is taken. It is subject to PAYE, USC, and PRSI as part of the normal pay run. Overtime is excluded from calculations; regular shift premiums and rostered allowances must be included.
         </div>
       </div>
     </div>
@@ -2467,7 +2535,7 @@ function renderHoliday(r) {
         ${PUBLIC_HOLIDAYS_2026.map(ph => `
           <tr style="border-bottom:1px solid var(--rule)">
             <td style="padding:6px 0;color:var(--ink-mid)">${ph.name}</td>
-            <td style="padding:6px 0;text-align:right;font-family:'DM Mono',monospace;color:var(--ink-soft)">${new Date(ph.date).toLocaleDateString('en-IE', { weekday:'short', day:'numeric', month:'short' })}</td>
+            <td style="padding:6px 0;text-align:right;font-family:'DM Mono',monospace;color:var(--ink-soft)">${new Date(ph.date).toLocaleDateString('en-IE',{weekday:'short',day:'numeric',month:'short'})}</td>
           </tr>`).join('')}
       </table>
     </div>`;
@@ -2482,12 +2550,236 @@ function toggleHolidayPattern() {
   calcHoliday();
 }
 
-function toggleHolidayMethod() {
-  const m = document.getElementById('h-method').value;
-  document.getElementById('h-annual-fields').style.display  = m === 'annual' ? 'block' : 'none';
-  document.getElementById('h-monthly-fields').style.display = m === 'monthly' ? 'block' : 'none';
-  document.getElementById('h-8pct-fields').style.display    = m === '8pct' ? 'block' : 'none';
-  calcHoliday();
+// ══ LEAVE TRACKER ENGINE ══
+
+let trackerEmployees = [
+  { name: 'Aoife Murphy',    pattern: 'fixed',    daysPW: 5, hrsYTD: 1300, months: 10, taken: 8,  currentMonth: 8  },
+  { name: 'Ciarán Kelly',    pattern: 'fixed',    daysPW: 5, hrsYTD: 1820, months: 12, taken: 15, currentMonth: 11 },
+  { name: "Siobhán O'Brien", pattern: 'variable', daysPW: 5, hrsYTD: 680,  months: 7,  taken: 3,  currentMonth: 9  },
+  { name: 'Pádraig Walsh',   pattern: 'variable', daysPW: 5, hrsYTD: 420,  months: 4,  taken: 2,  currentMonth: 11 },
+  { name: 'Niamh Collins',   pattern: 'variable', daysPW: 4, hrsYTD: 200,  months: 3,  taken: 0,  currentMonth: 10 },
+];
+
+function calcEntitlement(emp) {
+  const maxDays   = round2(MAX_LEAVE_WEEKS * emp.daysPW);
+  const hoursPerDay = 8;
+
+  // Method 1
+  let m1Days;
+  if (emp.hrsYTD >= 1365) {
+    m1Days = maxDays;
+  } else {
+    m1Days = round2(Math.min((emp.hrsYTD / 1365) * maxDays, maxDays));
+  }
+
+  // Method 2
+  const accrualPerMonth = round2(emp.daysPW / 3);
+  const m2Days = round2(Math.min(emp.months * accrualPerMonth, maxDays));
+
+  // Method 3
+  const leaveHours = round2(emp.hrsYTD * 0.08);
+  const capHours   = maxDays * hoursPerDay;
+  const m3Days     = round2(Math.min(leaveHours, capHours) / hoursPerDay);
+
+  const entitlement = Math.max(m1Days, m2Days, m3Days);
+  const winner = m1Days >= m2Days && m1Days >= m3Days ? 'M1'
+               : m2Days >= m3Days ? 'M2' : 'M3';
+
+  return { m1Days, m2Days, m3Days, entitlement, winner, maxDays };
+}
+
+function calcYearEndRisk(emp, leaveYear) {
+  // Work out how many working days remain in the leave year from the current month
+  const now = new Date(2026, emp.currentMonth - 1, 1); // start of current month
+  let yearEnd;
+  if (leaveYear === 'calendar') {
+    yearEnd = new Date(2026, 11, 31); // 31 Dec 2026
+  } else {
+    yearEnd = new Date(2027, 2, 31); // 31 Mar 2027
+  }
+
+  // Approximate working days remaining (5/7 of calendar days)
+  const msRemaining   = yearEnd - now;
+  const calDaysRemain = Math.max(0, Math.floor(msRemaining / (1000 * 60 * 60 * 24)));
+  const workDaysRemain = Math.round(calDaysRemain * 5 / 7);
+
+  // Project final entitlement — assume same monthly accrual rate continues
+  const monthsElapsed = emp.currentMonth - 1; // months complete so far
+  const monthsRemain  = leaveYear === 'calendar' ? (12 - emp.currentMonth) : (12 - emp.currentMonth + 3);
+  const hrsPerMonth   = monthsElapsed > 0 ? round2(emp.hrsYTD / monthsElapsed) : 0;
+  const projectedHrsTotal = round2(emp.hrsYTD + (hrsPerMonth * monthsRemain));
+  const projMonths    = Math.min(emp.months + monthsRemain, 12);
+
+  // Project final entitlement using same method comparison
+  const projEmp = { ...emp, hrsYTD: projectedHrsTotal, months: projMonths };
+  const projResult = calcEntitlement(projEmp);
+
+  const { entitlement } = calcEntitlement(emp);
+  const remaining = round2(Math.max(0, entitlement - emp.taken));
+  const projFinalRemaining = round2(Math.max(0, projResult.entitlement - emp.taken));
+
+  // Risk levels
+  let risk, riskReason;
+  if (projFinalRemaining > workDaysRemain) {
+    risk = 'high';
+    riskReason = `${projFinalRemaining} days projected untaken but only ~${workDaysRemain} working days left in year`;
+  } else if (projFinalRemaining > workDaysRemain * 0.6) {
+    risk = 'medium';
+    riskReason = `${projFinalRemaining} days to take with ~${workDaysRemain} working days remaining — needs scheduling`;
+  } else if (remaining > 0) {
+    risk = 'low';
+    riskReason = `${remaining} days remaining — manageable`;
+  } else {
+    risk = 'none';
+    riskReason = 'All leave taken';
+  }
+
+  return {
+    remaining, projFinalRemaining, workDaysRemain,
+    projectedHrsTotal, projMonths, projEntitlement: projResult.entitlement,
+    risk, riskReason
+  };
+}
+
+function renderTrackerTable() {
+  const tbody = document.getElementById('tracker-tbody');
+  tbody.innerHTML = '';
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  trackerEmployees.forEach((e, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input value="${e.name}" onchange="trackerEmployees[${i}].name=this.value" style="min-width:120px"></td>
+      <td><select onchange="trackerEmployees[${i}].pattern=this.value" style="width:100%">
+        <option value="fixed" ${e.pattern==='fixed'?'selected':''}>Fixed</option>
+        <option value="variable" ${e.pattern==='variable'?'selected':''}>Variable</option>
+      </select></td>
+      <td><input type="number" value="${e.daysPW}" min="1" max="7" step="1" onchange="trackerEmployees[${i}].daysPW=parseFloat(this.value)||5" style="width:55px"></td>
+      <td><input type="number" value="${e.hrsYTD}" step="1" onchange="trackerEmployees[${i}].hrsYTD=parseFloat(this.value)||0" style="width:80px"></td>
+      <td><input type="number" value="${e.months}" min="0" max="12" step="1" onchange="trackerEmployees[${i}].months=parseInt(this.value)||0" style="width:55px"></td>
+      <td><input type="number" value="${e.taken}" min="0" step="0.5" onchange="trackerEmployees[${i}].taken=parseFloat(this.value)||0" style="width:65px"></td>
+      <td><select onchange="trackerEmployees[${i}].currentMonth=parseInt(this.value)" style="width:100%">
+        ${months.map((m,mi) => `<option value="${mi+1}" ${e.currentMonth===mi+1?'selected':''}>${m}</option>`).join('')}
+      </select></td>
+      <td><button class="btn-remove" onclick="removeTrackerEmployee(${i})">✕</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function renderTracker() {
+  renderTrackerTable();
+  const leaveYear = document.getElementById('tr-leave-year').value;
+
+  const riskColors = {
+    high:   { bg: '#fdeaea', border: '#c33', text: '#a33', icon: '🔴' },
+    medium: { bg: 'var(--orange-light)', border: '#e8a45a', text: 'var(--orange)', icon: '🟡' },
+    low:    { bg: 'var(--green-light)', border: 'var(--green-mid)', text: 'var(--green)', icon: '🟢' },
+    none:   { bg: 'var(--surface)', border: 'var(--rule)', text: 'var(--ink-soft)', icon: '✓' },
+  };
+
+  const methodLabels = { M1: 'Method 1', M2: 'Method 2', M3: 'Method 3' };
+
+  let highCount = 0, medCount = 0, totalDaysAtRisk = 0;
+
+  const cards = trackerEmployees.map(emp => {
+    const ent  = calcEntitlement(emp);
+    const risk = calcYearEndRisk(emp, leaveYear);
+    const rc   = riskColors[risk.risk];
+    const remaining = round2(Math.max(0, ent.entitlement - emp.taken));
+
+    if (risk.risk === 'high')   { highCount++; totalDaysAtRisk += risk.projFinalRemaining; }
+    if (risk.risk === 'medium') medCount++;
+
+    // Bar chart: taken (green) + remaining (teal) + at-risk projection (amber/red)
+    const barTotal = Math.max(ent.projEntitlement, ent.entitlement, 1);
+    const takenPct  = Math.min(100, round2(emp.taken / barTotal * 100));
+    const remPct    = Math.min(100 - takenPct, round2(remaining / barTotal * 100));
+    const projExtra = round2(Math.max(0, risk.projEntitlement - ent.entitlement) / barTotal * 100);
+
+    return `
+      <div style="background:var(--white);border:1px solid ${rc.border};border-radius:8px;padding:16px;border-left:4px solid ${rc.border}">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px">
+          <div>
+            <div style="font-weight:500;font-size:14px">${emp.name}</div>
+            <div style="font-size:11px;color:var(--ink-soft);margin-top:2px">${emp.pattern === 'fixed' ? 'Fixed' : 'Variable'} · ${emp.daysPW}-day week · Month: ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][emp.currentMonth-1]}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-family:'DM Mono',monospace;font-size:18px;font-weight:500;color:var(--ink)">${ent.entitlement} days</div>
+            <div style="font-size:11px;color:var(--ink-soft)">current entitlement</div>
+          </div>
+        </div>
+
+        <!-- Progress bar -->
+        <div style="height:8px;border-radius:4px;background:var(--rule);margin-bottom:8px;overflow:hidden;display:flex">
+          <div style="width:${takenPct}%;background:var(--green);border-radius:4px 0 0 4px"></div>
+          <div style="width:${remPct}%;background:#7EC8A8"></div>
+          <div style="width:${projExtra}%;background:${risk.risk==='high'?'#e88':'#f4b46e'}"></div>
+        </div>
+        <div style="display:flex;gap:12px;font-size:11px;color:var(--ink-soft);margin-bottom:10px">
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:var(--green);border-radius:2px;display:inline-block"></span>${emp.taken} taken</span>
+          <span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:#7EC8A8;border-radius:2px;display:inline-block"></span>${remaining} remaining now</span>
+          ${projExtra > 0 ? `<span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;background:${risk.risk==='high'?'#e88':'#f4b46e'};border-radius:2px;display:inline-block"></span>${risk.projFinalRemaining} projected at year end</span>` : ''}
+        </div>
+
+        <!-- Method comparison mini -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">
+          ${['m1Days','m2Days','m3Days'].map((k,i) => {
+            const isWin = ent.winner === ['M1','M2','M3'][i];
+            return `<div style="background:${isWin?'var(--green-light)':'var(--surface)'};border:1px solid ${isWin?'var(--green-mid)':'var(--rule)'};border-radius:4px;padding:5px 8px;text-align:center">
+              <div style="font-size:10px;color:${isWin?'var(--green)':'var(--ink-soft)'};font-family:'DM Mono',monospace;letter-spacing:.04em">${['M1','M2','M3'][i]}${isWin?' ✓':''}</div>
+              <div style="font-size:14px;font-weight:500;color:${isWin?'var(--green)':'var(--ink-soft)'}">${ent[k]}</div>
+            </div>`;
+          }).join('')}
+        </div>
+
+        <!-- Risk alert -->
+        <div style="background:${rc.bg};border-radius:4px;padding:7px 10px;font-size:12px;color:${rc.text};line-height:1.4">
+          ${rc.icon} ${risk.riskReason}
+          ${risk.risk !== 'none' ? `<div style="font-size:11px;margin-top:3px;opacity:0.85">~${risk.workDaysRemain} working days remaining in leave year · Projected final entitlement: ${risk.projEntitlement} days</div>` : ''}
+        </div>
+      </div>`;
+  }).join('');
+
+  // Summary banner
+  const summaryBg = highCount > 0 ? '#fdeaea' : medCount > 0 ? 'var(--orange-light)' : 'var(--green-light)';
+  const summaryBorder = highCount > 0 ? '#c33' : medCount > 0 ? 'var(--orange)' : 'var(--green-mid)';
+  const summaryText = highCount > 0 ? `#a33` : medCount > 0 ? 'var(--orange)' : 'var(--green)';
+
+  const summary = `
+    <div style="background:${summaryBg};border:1px solid ${summaryBorder};border-radius:8px;padding:14px 18px;margin-bottom:20px;display:flex;gap:24px;flex-wrap:wrap;align-items:center">
+      <div>
+        <div style="font-size:11px;color:${summaryText};font-family:'DM Mono',monospace;letter-spacing:.06em;text-transform:uppercase;margin-bottom:3px">Team summary</div>
+        <div style="font-size:13px;color:var(--ink)">${trackerEmployees.length} employees · Leave year: ${leaveYear === 'calendar' ? 'Jan–Dec 2026' : 'Apr 2026–Mar 2027'}</div>
+      </div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap">
+        <div><div style="font-size:20px;font-weight:500;color:#a33">${highCount}</div><div style="font-size:11px;color:var(--ink-soft)">high risk</div></div>
+        <div><div style="font-size:20px;font-weight:500;color:var(--orange)">${medCount}</div><div style="font-size:11px;color:var(--ink-soft)">medium risk</div></div>
+        <div><div style="font-size:20px;font-weight:500;color:var(--green)">${trackerEmployees.length - highCount - medCount}</div><div style="font-size:11px;color:var(--ink-soft)">on track</div></div>
+        ${totalDaysAtRisk > 0 ? `<div><div style="font-size:20px;font-weight:500;color:#a33">${totalDaysAtRisk}</div><div style="font-size:11px;color:var(--ink-soft)">days at risk</div></div>` : ''}
+      </div>
+      ${highCount > 0 ? `<div style="font-size:12px;color:#a33;flex:1;min-width:200px">⚠ Action required — employees with high risk have projected untaken leave that cannot realistically be taken before year end. Schedule leave now or arrange carry-over agreements.</div>` : ''}
+    </div>`;
+
+  const legend = `
+    <div style="display:flex;gap:16px;font-size:11px;color:var(--ink-soft);margin-bottom:14px;flex-wrap:wrap">
+      <span>🔴 High risk — untaken leave projected to exceed remaining working days</span>
+      <span>🟡 Medium — leave needs active scheduling</span>
+      <span>🟢 Low — manageable</span>
+    </div>`;
+
+  document.getElementById('tracker-results').innerHTML =
+    summary + legend +
+    `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px">${cards}</div>`;
+}
+
+function addTrackerEmployee() {
+  trackerEmployees.push({ name: 'New employee', pattern: 'variable', daysPW: 5, hrsYTD: 0, months: 0, taken: 0, currentMonth: new Date().getMonth() + 1 });
+  renderTracker();
+}
+
+function removeTrackerEmployee(i) {
+  trackerEmployees.splice(i, 1);
+  renderTracker();
 }
 
 // ══ Page navigation ══
@@ -2500,6 +2792,7 @@ function showPage(id) {
   if (id === 'ssp')         calcSSP();
   if (id === 'termination') calcTermination();
   if (id === 'holiday')     calcHoliday();
+  if (id === 'tracker')     renderTracker();
 }
 
 // Init
