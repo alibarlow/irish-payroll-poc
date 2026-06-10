@@ -615,6 +615,7 @@
   <button class="nav-tab" onclick="showPage('tracker')">Leave tracker</button>
   <button class="nav-tab" onclick="showPage('family')">Family leave</button>
   <button class="nav-tab" onclick="showPage('tronc')">Tips &amp; tronc</button>
+  <button class="nav-tab" onclick="showPage('premium')">Premium pay</button>
 </nav>
 
 <!-- ═══ SINGLE PAYSLIP PAGE ═══ -->
@@ -1410,6 +1411,149 @@
       <div class="empty-state">
         <div class="empty-icon">◎</div>
         <p>Tips &amp; tronc calculation will appear here.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ PREMIUM PAY PAGE ═══ -->
+<div id="page-premium" class="page">
+
+  <div style="margin-bottom:20px">
+    <div style="font-size:18px;font-weight:500;color:var(--ink)">Premium pay calculator</div>
+    <div style="font-size:12px;color:var(--ink-soft);margin-top:3px">Sunday premium · Night hours · Overtime · Minimum wage check · Sector rates · 2026</div>
+  </div>
+
+  <!-- Status cards -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:22px">
+    <div style="background:#E8F5EE;border:1px solid var(--green-mid);border-radius:8px;padding:12px;border-top:3px solid var(--green)">
+      <div style="font-size:11px;color:var(--green);font-weight:500;letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px">Sunday premium</div>
+      <div style="font-size:12px;color:var(--ink-mid);line-height:1.5">Statutory — OWT Act s.14. A "reasonable" amount must be paid. No specific rate in law. Labour Court guidance: 25–33%.</div>
+    </div>
+    <div style="background:#F5F5F3;border:1px solid var(--rule);border-radius:8px;padding:12px;border-top:3px solid var(--ink-soft)">
+      <div style="font-size:11px;color:var(--ink-soft);font-weight:500;letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px">Night premium</div>
+      <div style="font-size:12px;color:var(--ink-mid);line-height:1.5">No statutory rate. Entirely contractual. Night defined as midnight–7am. Health assessment obligations apply.</div>
+    </div>
+    <div style="background:#F5F5F3;border:1px solid var(--rule);border-radius:8px;padding:12px;border-top:3px solid var(--ink-soft)">
+      <div style="font-size:11px;color:var(--ink-soft);font-weight:500;letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px">Overtime</div>
+      <div style="font-size:12px;color:var(--ink-mid);line-height:1.5">No statutory rate. Contractual only. Max 48-hour average week applies. Base rate cannot fall below minimum wage.</div>
+    </div>
+    <div style="background:#FDF4E6;border:1px solid #E8C49A;border-radius:8px;padding:12px;border-top:3px solid var(--orange)">
+      <div style="font-size:11px;color:var(--orange);font-weight:500;letter-spacing:.06em;text-transform:uppercase;margin-bottom:4px">Sector ERO rates</div>
+      <div style="font-size:12px;color:var(--ink-mid);line-height:1.5">EROs apply to: contract cleaning (€14.80/hr), security, early years/childcare. Hospitality &amp; retail — national minimum only.</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <div class="card">
+        <div class="card-title">Employee &amp; hours</div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>First name</label>
+            <input type="text" id="pr-first" value="Ciarán" oninput="calcPremium()">
+          </div>
+          <div class="form-group">
+            <label>Surname</label>
+            <input type="text" id="pr-last" value="Kelly" oninput="calcPremium()">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Sector</label>
+          <select id="pr-sector" onchange="calcPremium()">
+            <option value="hospitality">Hospitality (hotels, restaurants, bars)</option>
+            <option value="retail">Retail</option>
+            <option value="care">Care / nursing homes</option>
+            <option value="childcare">Early years / childcare (ERO applies)</option>
+            <option value="cleaning">Contract cleaning (ERO applies)</option>
+            <option value="security">Security (ERO applies)</option>
+            <option value="other">Other — national minimum applies</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Base hourly rate (€)</label>
+          <input type="number" id="pr-rate" value="14.15" step="0.01" oninput="calcPremium()">
+        </div>
+
+        <div class="form-group">
+          <label>Pay period</label>
+          <select id="pr-freq" onchange="calcPremium()">
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+        </div>
+
+        <div class="section-divider">Hours worked this period</div>
+
+        <div class="form-group">
+          <label>Standard weekday hours</label>
+          <input type="number" id="pr-std-hrs" value="30" step="0.5" oninput="calcPremium()">
+        </div>
+
+        <div class="form-group">
+          <label>Sunday hours</label>
+          <input type="number" id="pr-sun-hrs" value="6" step="0.5" oninput="calcPremium()">
+        </div>
+
+        <div class="form-group">
+          <label>Night hours (midnight–7am)</label>
+          <input type="number" id="pr-night-hrs" value="4" step="0.5" oninput="calcPremium()">
+        </div>
+
+        <div class="form-group">
+          <label>Overtime hours (above contracted)</label>
+          <input type="number" id="pr-ot-hrs" value="3" step="0.5" oninput="calcPremium()">
+        </div>
+
+        <div class="section-divider">Premium rates</div>
+        <div style="font-size:11px;color:var(--ink-soft);margin-bottom:10px;line-height:1.5">Sunday premium is legally required. Night and overtime premiums are contractual — enter 0 if not paid.</div>
+
+        <div class="form-group">
+          <label>Sunday premium rate (%)</label>
+          <select id="pr-sun-pct" onchange="calcPremium()">
+            <option value="25">25% above base (time + quarter) — Labour Court minimum</option>
+            <option value="33" selected>33% above base (time + third) — Labour Court standard</option>
+            <option value="50">50% above base (time + half)</option>
+            <option value="100">100% above base (double time)</option>
+            <option value="custom">Custom rate</option>
+          </select>
+        </div>
+        <div id="pr-sun-custom" style="display:none">
+          <div class="form-group">
+            <label>Custom Sunday premium (%)</label>
+            <input type="number" id="pr-sun-custom-val" value="33" step="1" oninput="calcPremium()">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Night premium rate (%) — 0 if none</label>
+          <input type="number" id="pr-night-pct" value="20" step="5" oninput="calcPremium()">
+        </div>
+
+        <div class="form-group">
+          <label>Overtime premium rate (%) — 0 if none</label>
+          <input type="number" id="pr-ot-pct" value="50" step="5" oninput="calcPremium()">
+        </div>
+
+        <div class="section-divider">Tax details</div>
+        <div class="form-group">
+          <label>Annual tax credits (€)</label>
+          <input type="number" id="pr-credits" value="3750" step="1" oninput="calcPremium()">
+        </div>
+        <div class="form-group">
+          <label>Standard rate cut-off — annual (€)</label>
+          <input type="number" id="pr-cutoff" value="42000" step="100" oninput="calcPremium()">
+        </div>
+      </div>
+    </div>
+
+    <div id="premium-output">
+      <div class="empty-state">
+        <div class="empty-icon">◎</div>
+        <p>Premium pay breakdown will appear here.</p>
       </div>
     </div>
   </div>
@@ -3538,6 +3682,220 @@ function renderTronc(r) {
   document.getElementById('tronc-output').innerHTML = html;
 }
 
+// ══ PREMIUM PAY ENGINE ══
+
+const MIN_WAGE_2026      = 14.15;
+const SECTOR_FLOORS = {
+  hospitality: { label: 'Hospitality',            floor: 14.15, eroActive: false, note: 'National minimum only — no active ERO for hotels/restaurants/bars' },
+  retail:      { label: 'Retail',                  floor: 14.15, eroActive: false, note: 'National minimum only — no ERO for retail' },
+  care:        { label: 'Care / nursing homes',    floor: 14.15, eroActive: false, note: 'National minimum only — no ERO for nursing homes or home care' },
+  childcare:   { label: 'Early years / childcare', floor: 14.50, eroActive: true,  note: 'ERO active (S.I. No. 477/478 of 2025). Minimum rate above national minimum — check current WRC ERO for exact rate by role.' },
+  cleaning:    { label: 'Contract cleaning',       floor: 14.80, eroActive: true,  note: 'ERO active. Minimum €14.80/hr from 1 January 2026. Check WRC for full ERO conditions.' },
+  security:    { label: 'Security',                floor: 15.00, eroActive: true,  note: 'ERO active. Security sector ERO minimum rate. Check WRC for exact current rate by grade.' },
+  other:       { label: 'Other sector',            floor: 14.15, eroActive: false, note: 'National minimum wage applies — €14.15/hr from 1 January 2026.' },
+};
+
+// Hours per week average — 48hr max rule
+const MAX_AVG_WEEKLY_HRS = 48;
+
+function calcPremium() {
+  const first     = document.getElementById('pr-first').value || 'Employee';
+  const last      = document.getElementById('pr-last').value || '';
+  const sector    = document.getElementById('pr-sector').value;
+  const baseRate  = parseFloat(document.getElementById('pr-rate').value) || 0;
+  const freq      = document.getElementById('pr-freq').value;
+  const stdHrs    = parseFloat(document.getElementById('pr-std-hrs').value) || 0;
+  const sunHrs    = parseFloat(document.getElementById('pr-sun-hrs').value) || 0;
+  const nightHrs  = parseFloat(document.getElementById('pr-night-hrs').value) || 0;
+  const otHrs     = parseFloat(document.getElementById('pr-ot-hrs').value) || 0;
+  const credits   = parseFloat(document.getElementById('pr-credits').value) || 0;
+  const cutoff    = parseFloat(document.getElementById('pr-cutoff').value) || 0;
+
+  // Premium rates
+  const sunPctSel = document.getElementById('pr-sun-pct').value;
+  document.getElementById('pr-sun-custom').style.display = sunPctSel === 'custom' ? 'block' : 'none';
+  const sunPct    = sunPctSel === 'custom'
+    ? (parseFloat(document.getElementById('pr-sun-custom-val').value) || 0)
+    : parseFloat(sunPctSel);
+  const nightPct  = parseFloat(document.getElementById('pr-night-pct').value) || 0;
+  const otPct     = parseFloat(document.getElementById('pr-ot-pct').value) || 0;
+
+  const sectorInfo = SECTOR_FLOORS[sector] || SECTOR_FLOORS['other'];
+  const effectiveFloor = Math.max(MIN_WAGE_2026, sectorInfo.floor);
+
+  // ── Minimum wage check ──
+  const totalHrs      = round2(stdHrs + sunHrs + nightHrs + otHrs);
+  const baseWageCheck = baseRate >= effectiveFloor;
+  // Effective hourly check: total gross ÷ total hours must be ≥ floor
+  // (premiums don't count toward min wage — base rate must clear floor independently)
+
+  // ── Pay calculations ──
+  const stdPay    = round2(stdHrs * baseRate);
+  const sunBase   = round2(sunHrs * baseRate);
+  const sunPrem   = round2(sunHrs * baseRate * (sunPct / 100));
+  const sunTotal  = round2(sunBase + sunPrem);
+  const nightBase = round2(nightHrs * baseRate); // already in std pay if these overlap — treated separately here
+  const nightPrem = round2(nightHrs * baseRate * (nightPct / 100));
+  const otBase    = round2(otHrs * baseRate);
+  const otPrem    = round2(otHrs * baseRate * (otPct / 100));
+
+  // Total gross — base pay for all hours plus all premiums
+  const totalBaseForAllHrs = round2((stdHrs + sunHrs + nightHrs + otHrs) * baseRate);
+  const totalPremiums      = round2(sunPrem + nightPrem + otPrem);
+  const grossPay           = round2(totalBaseForAllHrs + totalPremiums);
+
+  // Premiums are taxable — run through normal calculation
+  const periods = PERIODS[freq];
+  const taxResult = calculatePayslip({
+    grossPay, annualCredits: credits, annualCutoff: cutoff,
+    frequency: freq, periodNumber: 1, basis: 'week1',
+    prsiClass: 'A', uscRate: 'standard', pensionEmployee: 0,
+    autoEnrolled: false, bikValue: 0, bikTreatment: 'notional',
+    aePhase: 1, annualSalary: round2(baseRate * 39 * 52),
+    lptAmount: 0, courtOrder: 0, courtFloor: 0,
+  });
+
+  // 48-hour check
+  const weeklyHrsEquiv = freq === 'monthly' ? round2(totalHrs * 12 / 52) : totalHrs;
+  const exceeds48      = weeklyHrsEquiv > MAX_AVG_WEEKLY_HRS;
+
+  renderPremium({
+    name: first + ' ' + last, sector, sectorInfo, baseRate, effectiveFloor,
+    baseWageCheck, freq,
+    stdHrs, sunHrs, nightHrs, otHrs, totalHrs, weeklyHrsEquiv, exceeds48,
+    stdPay, sunBase, sunPrem, sunTotal, sunPct,
+    nightBase, nightPrem, nightPct,
+    otBase, otPrem, otPct,
+    totalBaseForAllHrs, totalPremiums, grossPay,
+    taxResult,
+  });
+}
+
+function renderPremium(r) {
+  const mwStatus  = r.baseWageCheck
+    ? `<span style="color:var(--green)">✓ Compliant — base rate ${fmt(r.baseRate)}/hr ≥ floor ${fmt(r.effectiveFloor)}/hr</span>`
+    : `<span style="color:var(--orange)">⚠ Below floor — base rate ${fmt(r.baseRate)}/hr is below the ${r.sectorInfo.eroActive ? 'ERO' : 'national minimum'} of ${fmt(r.effectiveFloor)}/hr</span>`;
+
+  const hoursStatus = r.exceeds48
+    ? `<span style="color:var(--orange)">⚠ ${r.weeklyHrsEquiv} hrs/week average — exceeds 48-hour limit</span>`
+    : `<span style="color:var(--green)">✓ ${r.weeklyHrsEquiv} hrs/week average — within 48-hour limit</span>`;
+
+  const html = `
+    <div class="payslip">
+      <div class="payslip-header">
+        <div class="company">Fourth — Premium Pay</div>
+        <div class="period">${r.sectorInfo.label} · ${r.freq === 'monthly' ? 'Monthly' : 'Weekly'} pay · 2026</div>
+        <div class="emp-meta">
+          <div class="meta-item"><div class="meta-label">Employee</div><div class="meta-val">${r.name}</div></div>
+          <div class="meta-item"><div class="meta-label">Base rate</div><div class="meta-val">${fmt(r.baseRate)}/hr</div></div>
+          <div class="meta-item"><div class="meta-label">Total hours</div><div class="meta-val">${r.totalHrs} hrs</div></div>
+        </div>
+      </div>
+      <div class="payslip-body">
+
+        <!-- Compliance checks -->
+        <div class="pay-section">
+          <div class="pay-section-title">Compliance checks</div>
+          <div class="pay-line">
+            <span class="line-label">Minimum wage / ERO floor<small>${r.sectorInfo.note}</small></span>
+            <span class="line-amount" style="font-size:12px">${mwStatus}</span>
+          </div>
+          <div class="pay-line">
+            <span class="line-label">48-hour average working week<small>Averaged over reference period — this period only shown here</small></span>
+            <span class="line-amount" style="font-size:12px">${hoursStatus}</span>
+          </div>
+          ${r.sunHrs > 0 ? `<div class="pay-line">
+            <span class="line-label">Sunday premium<small>Legally required under OWT Act s.14 — ${r.sunPct}% applied</small></span>
+            <span class="line-amount" style="font-size:12px;color:var(--green)">✓ Applied — ${fmt(r.sunPrem)}</span>
+          </div>` : ''}
+        </div>
+
+        <!-- Hours breakdown -->
+        <div class="pay-section">
+          <div class="pay-section-title">Pay breakdown by hour type</div>
+
+          <div class="pay-line">
+            <span class="line-label">Standard weekday hours<small>${r.stdHrs} hrs × ${fmt(r.baseRate)}</small></span>
+            <span class="line-amount">${fmt(r.stdPay)}</span>
+          </div>
+
+          ${r.sunHrs > 0 ? `
+          <div class="pay-line">
+            <span class="line-label">Sunday hours — base pay<small>${r.sunHrs} hrs × ${fmt(r.baseRate)}</small></span>
+            <span class="line-amount">${fmt(r.sunBase)}</span>
+          </div>
+          <div class="pay-line" style="background:var(--green-pale)">
+            <span class="line-label" style="color:var(--green)">Sunday premium<small>${r.sunHrs} hrs × ${fmt(r.baseRate)} × ${r.sunPct}% — statutory requirement</small></span>
+            <span class="line-amount mono green">+${fmt(r.sunPrem)}</span>
+          </div>` : ''}
+
+          ${r.nightHrs > 0 ? `
+          <div class="pay-line">
+            <span class="line-label">Night hours — base pay<small>${r.nightHrs} hrs midnight–7am × ${fmt(r.baseRate)}</small></span>
+            <span class="line-amount">${fmt(r.nightBase)}</span>
+          </div>
+          ${r.nightPct > 0 ? `<div class="pay-line" style="background:var(--green-pale)">
+            <span class="line-label" style="color:var(--green)">Night premium<small>${r.nightHrs} hrs × ${fmt(r.baseRate)} × ${r.nightPct}% — contractual</small></span>
+            <span class="line-amount mono green">+${fmt(r.nightPrem)}</span>
+          </div>` : `<div class="pay-line">
+            <span class="line-label" style="color:var(--ink-soft)">Night premium<small>No night premium applied — contractual only, not required by law</small></span>
+            <span class="line-amount" style="color:var(--ink-soft)">€0.00</span>
+          </div>`}` : ''}
+
+          ${r.otHrs > 0 ? `
+          <div class="pay-line">
+            <span class="line-label">Overtime hours — base pay<small>${r.otHrs} hrs × ${fmt(r.baseRate)}</small></span>
+            <span class="line-amount">${fmt(r.otBase)}</span>
+          </div>
+          ${r.otPct > 0 ? `<div class="pay-line" style="background:var(--green-pale)">
+            <span class="line-label" style="color:var(--green)">Overtime premium<small>${r.otHrs} hrs × ${fmt(r.baseRate)} × ${r.otPct}% — contractual</small></span>
+            <span class="line-amount mono green">+${fmt(r.otPrem)}</span>
+          </div>` : `<div class="pay-line">
+            <span class="line-label" style="color:var(--ink-soft)">Overtime premium<small>No overtime premium applied — contractual only, not required by law</small></span>
+            <span class="line-amount" style="color:var(--ink-soft)">€0.00</span>
+          </div>`}` : ''}
+        </div>
+
+        <!-- Gross summary -->
+        <div class="pay-section">
+          <div class="pay-section-title">Gross pay summary</div>
+          <div class="pay-line">
+            <span class="line-label">Base pay all hours<small>${r.totalHrs} hrs × ${fmt(r.baseRate)}</small></span>
+            <span class="line-amount">${fmt(r.totalBaseForAllHrs)}</span>
+          </div>
+          <div class="pay-line">
+            <span class="line-label">Total premiums</span>
+            <span class="line-amount mono green">+${fmt(r.totalPremiums)}</span>
+          </div>
+          <div class="pay-line" style="background:var(--green-pale)">
+            <span class="line-label" style="font-weight:500">Total gross pay</span>
+            <span class="line-amount mono">${fmt(r.grossPay)}</span>
+          </div>
+        </div>
+
+        <!-- Tax -->
+        <div class="pay-section">
+          <div class="pay-section-title">Statutory deductions (all pay types fully taxable)</div>
+          <div class="pay-line deduction"><span class="line-label">PAYE</span><span class="line-amount">−${fmt(r.taxResult.payeDeducted)}</span></div>
+          <div class="pay-line deduction"><span class="line-label">USC</span><span class="line-amount">−${fmt(r.taxResult.uscDeducted)}</span></div>
+          <div class="pay-line deduction"><span class="line-label">PRSI (employee)</span><span class="line-amount">−${fmt(r.taxResult.prsiEmployee)}</span></div>
+          <div class="pay-line employer-cost"><span class="line-label">PRSI (employer)<small>Not deducted from employee</small></span><span class="line-amount">${fmt(r.taxResult.prsiEmployer)}</span></div>
+        </div>
+
+        <div class="pay-totals">
+          <div class="total-row"><span class="t-label">Total deductions</span><span class="t-amount orange">−${fmt(r.taxResult.totalDeductions)}</span></div>
+          <div class="total-row net"><span class="t-label">Net pay</span><span class="t-amount">${fmt(r.taxResult.netPay)}</span></div>
+        </div>
+
+        <div style="padding:10px 24px;font-size:11px;color:var(--ink-soft);line-height:1.6;border-top:1px solid var(--rule)">
+          All premium payments are subject to PAYE, USC, and PRSI in the normal way. Premiums cannot be used to make up the minimum wage base rate — the base hourly rate must independently meet the floor. Sunday premiums must be separately identifiable in the payslip or contract.
+        </div>
+      </div>
+    </div>`;
+
+  document.getElementById('premium-output').innerHTML = html;
+}
+
 // ══ Page navigation ══
 function showPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
@@ -3551,6 +3909,7 @@ function showPage(id) {
   if (id === 'tracker')     renderTracker();
   if (id === 'family')      { renderFamilyRefCards(); calcFamilyLeave(); }
   if (id === 'tronc')       calcTronc();
+  if (id === 'premium')     calcPremium();
 }
 
 // Init
